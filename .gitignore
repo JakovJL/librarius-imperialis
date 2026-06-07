@@ -21,3 +21,6 @@ Desktop.ini
 
 # --- Secrets: never sync this notes file (contains API keys/tokens) ---
 Разное/Апи роутер.md
+
+# --- Obsidian Git: plugin stores auth token here, must never sync ---
+.obsidian/plugins/obsidian-git/data.json
