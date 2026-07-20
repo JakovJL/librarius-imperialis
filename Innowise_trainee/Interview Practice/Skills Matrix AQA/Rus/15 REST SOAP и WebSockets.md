@@ -1,23 +1,8 @@
-# REST SOAP и WebSockets
+# REST, SOAP и WebSockets
 
 ## Содержание
 
 - [[#Вопросы и ответы]]
-	- [[#Что это такое и что нужно знать?]]
-	- [[#Какие практические навыки нужны Automation QA?]]
-	- [[#Какие ошибки и риски важны?]]
-- [[#Требования Intern и Junior]]
-- [[#Требования Middle и Senior]]
-	- [[#В чём разница между REST, SOAP и WebSocket?]]
-	- [[#Как работают HTTP methods и idempotency?]]
-	- [[#Что содержат HTTP request и response?]]
-	- [[#Чем отличаются JSON и XML?]]
-	- [[#Какие tools помогают тестировать API?]]
-	- [[#Что такое serialization и common Java HTTP libraries?]]
-	- [[#Как тестировать WebSocket?]]
-	- [[#Как тестировать API security, CORS и error responses?]]
-	- [[#Какие advanced API topics нужно знать?]]
-- [[#Ссылки на теорию]]
 
 **Связанные заметки:** [[00 Индекс Skills Matrix AQA]]
 
@@ -25,102 +10,178 @@
 
 ## Вопросы и ответы
 
-### Что это такое и что нужно знать?
+1. Базовые понятия:
 
-**Короткий ответ:**
+   **Ответ:** При тестировании API нужно понимать transport, protocol или architectural style, формат сообщений, contract и модель взаимодействия. REST обычно использует HTTP request/response, SOAP обменивается формализованными XML messages, а WebSocket поддерживает длительное двустороннее соединение. Для каждого варианта проверяются функциональность, ошибки, безопасность, производительность и совместимость.
 
-REST обычно использует HTTP resources и JSON; SOAP — XML protocol с formal contracts; WebSocket предоставляет persistent full-duplex events.
+2. что такое REST, SOAP, WebSocket
 
-### Какие практические навыки нужны Automation QA?
+   **Ответ:** REST — architectural style, в котором resources имеют URI, а операции используют единый interface и stateless requests. SOAP — protocol обмена XML messages с формальным Envelope и расширениями вроде WS-Security. WebSocket — protocol поверх TCP с HTTP-compatible handshake, после которого client и server могут независимо отправлять text или binary messages по одному соединению.
 
-**Короткий ответ:**
+3. основные отличия REST ↔ SOAP
 
-Проверять methods, idempotency, status, headers, schema, serialization, authorization, errors, events, timeouts, contracts и side effects через Postman, curl, REST Assured или clients.
+   **Ответ:** REST не задаёт единый формат сообщения и чаще использует HTTP с JSON, тогда как SOAP строго использует XML message structure и может работать поверх разных transports. SOAP имеет стандарты WS-* для security, reliability и transactions; REST обычно проще и легче интегрируется с web ecosystem. Выбор зависит от contract, инфраструктуры и требований, а не от утверждения, что один подход всегда лучше.
 
-### Какие ошибки и риски важны?
+4. идемпотентность и HTTP-методы (GET, POST, PUT, PATCH, DELETE)
 
-**Короткий ответ:**
+   **Ответ:** Метод идемпотентен, если несколько одинаковых requests имеют тот же предполагаемый effect на server, что и один. GET является safe и idempotent, PUT и DELETE по HTTP semantics идемпотентны, а POST и PATCH не гарантируют идемпотентность. Повторный DELETE может вернуть другой status, но итоговое состояние resource остаётся тем же; для безопасного retry POST иногда используют idempotency key.
 
-Покрывать version compatibility, retries, rate limits, CORS, OAuth, OWASP risks, API mocks и multi-environment CI.
+5. HTTP статус-коды и структура запроса/ответа
 
----
+   **Ответ:** Request содержит method, target URI, HTTP version, headers и optional body; response — status code, headers и optional body. Классы codes: 1xx informational, 2xx success, 3xx redirection, 4xx client error и 5xx server error. В тесте я проверяю не только status, но и headers, content type, schema, body и side effects.
 
-## Требования Intern и Junior
+6. JSON vs. XML
 
-- REST — architectural style, обычно используемый поверх HTTP; SOAP — message protocol с XML envelopes и часто WSDL contract; WebSocket — long-lived full-duplex connection. REST обычно использует JSON, а SOAP — XML.
-- `GET` читает, `POST` создаёт или отправляет action, `PUT` заменяет representation, `PATCH` меняет его часть, а `DELETE` удаляет. GET, PUT и DELETE должны быть idempotent; повтор одного POST может создать ещё один result.
-- Проверяются request method, URL, headers, body, response status, headers и body. JSON лёгкий и object-oriented; XML использует nested tags и schemas. `204 No Content` успешен и не содержит response body.
-- Postman отправляет saved requests в collections, `curl` — requests из terminal, Swagger/OpenAPI описывает endpoints и schemas, а browser DevTools показывает browser network requests.
+   **Ответ:** JSON компактно представляет objects, arrays и primitive values и широко используется в web API. XML поддерживает attributes, namespaces, mixed content и строгие schemas вроде XSD, но обычно многословнее. Форматы нужно сравнивать по contract: преобразование XML в JSON может потерять различие между attribute, element и namespace.
 
----
+7. разница GET/POST, PUT/POST
 
-## Требования Middle и Senior
+   **Ответ:** GET получает representation и по semantics не должен изменять server state, а POST отправляет данные для обработки и часто создаёт subordinate resource или запускает command. PUT создаёт или полностью заменяет resource по известному URI и должен быть идемпотентным. POST обычно не идемпотентен и часто позволяет server самому определить URI нового resource.
 
-- Serialization преобразует object в JSON или XML, а deserialization создаёт object из них. Примеры Java: Jackson, Gson, Java `HttpClient`, REST Assured и Retrofit. Нужно валидировать JSON Schema и намеренно обрабатывать empty body и non-success responses.
-- WebSocket client подключается, subscribes или отправляет message, ждёт с timeout, фильтрует нужный event и проверяет payload и side effects. Проверяются reconnects, duplicate events, ordering assumptions и authorization.
-- Bearer, Basic и OAuth-based access тестируются без secrets в source или reports. CORS — browser rule для cross-origin browser requests, а не API authentication mechanism.
-- Senior API work включает version compatibility, OpenAPI или Pact contracts, GraphQL query/mutation/schema checks, SOAP WS-Security, OWASP API risks, rate limits, retries, mocks или virtual services, CI execution и отдельные environments.
+8. Инструменты для отправки запросов:
 
----
+   **Ответ:** Для ручного исследования подходят Postman, curl, browser DevTools и специализированные SOAP или WebSocket clients. Для автоматизации используются language libraries и test frameworks. Инструмент должен позволять контролировать method, URL, headers, body, Authentication, certificates, timeouts и сохранять фактический response.
 
-## Подробные вопросы и ответы
+9. отправка HTTP-запросов через Postman, создание коллекций
 
-### В чём разница между REST, SOAP и WebSocket?
+   **Ответ:** В Postman создаётся request с method, URL, parameters, headers, body и Authentication, после чего проверки можно добавить в post-response scripts. Связанные requests объединяются в collection, а значения выносятся в environment или collection variables. Secrets не следует экспортировать вместе с collection, а запуск в CI выполняется через поддерживаемый CLI с публикацией отчёта.
 
-**Ответ:**
+10. работа с curl
 
-REST — architectural style, обычно использующий HTTP resources, methods, status codes и JSON. SOAP — protocol с XML envelopes, строгими message rules и часто WSDL contract. WebSocket создаёт persistent full-duplex connection для events в обоих направлениях. Test approach выбирается по protocol и contract, а не по названию tool.
+   **Ответ:** curl отправляет request из command line, например method задаётся через `-X`, headers через `-H`, body через `--data`, а подробный обмен виден с `-v`. Для JSON обычно указывают `Content-Type: application/json`, а token передают в Authorization header. В логах CI нельзя печатать secrets, и shell quoting нужно учитывать отдельно для PowerShell и Unix-like shells.
 
-### Как работают HTTP methods и idempotency?
+11. чтение API-документации (Swagger/OpenAPI)
 
-**Ответ:**
+   **Ответ:** Я начинаю с servers и security schemes, затем читаю path, method, parameters, request body, response codes и schemas. Swagger UI — интерфейс для просмотра и отправки requests, а OpenAPI document — machine-readable описание API. Документация задаёт ожидаемый contract, но тесты также должны проверять реальные business rules, ошибки и права доступа.
 
-`GET` читает data, `POST` создаёт resource или отправляет action, `PUT` заменяет resource, `PATCH` меняет его часть, а `DELETE` удаляет. Повтор idempotent request имеет тот же intended effect, что и один request. GET, PUT и DELETE должны быть idempotent, а POST обычно нет. `PUT` обычно заменяет representation, а `POST` создаёт child resource или начинает action.
+12. просмотр запросов в DevTools (Chrome/Firefox)
 
-### Что содержат HTTP request и response?
+   **Ответ:** Во вкладке Network можно увидеть URL, method, status, request и response headers, payload, timing, cookies и initiator. Фильтры Fetch/XHR и WS помогают отделить API calls и WebSocket frames. Sensitive headers и данные нужно маскировать перед сохранением HAR или screenshot.
 
-**Ответ:**
+13. Сериализация, десериализация:
 
-Request содержит method, URL, path/query parameters, headers и optional body. Response содержит status code, headers и optional body. Проверяются и status, и business data. Например, `200` — success с response, `201` — обычно created, `204` — success без body, `400` — invalid client input, `401` — нужна authentication, `403` — access denied, `404` — resource not found.
+   **Ответ:** Serialization преобразует object в transport format вроде JSON или XML, а deserialization создаёт object из полученных данных. Ошибки возникают из-за типов, дат, null, неизвестных fields, naming policy и несовместимой schema. В тестах полезно отдельно проверять raw response и typed model, чтобы строгая deserialization не скрыла фактический ответ server.
 
-### Чем отличаются JSON и XML?
+14. уметь обрабатывать JSON, XML и использовать библиотеки (например, Jackson, Gson, Newtonsoft, etc.)
 
-**Ответ:**
+   **Ответ:** В Java Jackson или Gson преобразуют JSON в objects и обратно, а Jackson также имеет XML module; в .NET часто используется Newtonsoft.Json или System.Text.Json. Нужно уметь настроить field mapping, dates, unknown properties и custom converters. Library version и настройки должны быть едиными с contract, а untrusted data нельзя десериализовать небезопасным polymorphic способом.
 
-JSON представляет objects и arrays через key-value syntax и часто используется REST API. XML использует nested tagged elements, attributes и namespaces; SOAP использует XML. Оба формата можно проверять schemas. Проверяются correct types, required fields, boundary values, encoding и обработка unknown или missing fields по specification.
+15. Использование библиотек для работы с протоколами:
 
-### Какие tools помогают тестировать API?
+   **Ответ:** Library выбирается по protocol, language и уровню abstraction. Важно контролировать connection pooling, timeouts, TLS, retries, serialization, logging и async behavior. Обёртка проекта должна добавлять domain-specific operations, но не скрывать status, headers и raw response, необходимые для диагностики.
 
-**Ответ:**
+16. RestAssured, Retrofit, Requests (Python), HttpClient
 
-Postman отправляет requests вручную и хранит их в collections. `curl` отправляет requests из command line и удобен для reproducible diagnostics. Swagger/OpenAPI описывает endpoints, parameters, authentication и schemas. Browser DevTools показывает requests web application, но не заменяет API assertions automated tests.
+   **Ответ:** REST Assured — Java DSL, удобный для API assertions; Retrofit генерирует typed HTTP client по Java interfaces и converters. Python Requests предоставляет простой synchronous client, а название HttpClient используется в нескольких стеках, например Java и .NET, для низкоуровневой отправки HTTP. Ни один client не заменяет проверку contract и business assertions.
 
-### Что такое serialization и common Java HTTP libraries?
+17. WebSoccets:
 
-**Ответ:**
+   **Ответ:** Правильное название технологии — WebSockets. При тестировании важны handshake, Authentication, subprotocol, text и binary messages, порядок событий, reconnect, ping/pong и корректное закрытие. Поскольку сообщения приходят асинхронно, тесту нужны thread-safe collection, filtering и ограниченные waits.
 
-Serialization преобразует object в JSON или XML, а deserialization преобразует response обратно в object. В Java Jackson и Gson работают с JSON. Java `HttpClient`, REST Assured и Retrofit отправляют HTTP requests; выбор зависит от low-level client, fluent API testing или application client.
+18. что такое и как работает
 
-### Как тестировать WebSocket?
+   **Ответ:** Client начинает с HTTP handshake и просит перейти на WebSocket protocol; после успешного ответа создаётся двусторонний канал. Данные передаются frames, которые образуют text, binary и control messages, а обе стороны могут отправлять их независимо. Соединение завершается closing handshake или обрывом, который client должен корректно обработать.
 
-**Ответ:**
+19. работа с WebSocket (через wscat/web-интерфейс)
 
-Нужно подключить client, при необходимости выполнить authentication, отправить или subscribe на message, ждать с timeout и проверить expected event и payload. Также проверяются disconnect и reconnect behaviour, message filtering, duplicates, ordering assumptions, invalid messages и side effects system. WebSocket test не должен бесконечно ждать event.
+   **Ответ:** wscat позволяет подключиться к `ws://` или защищённому `wss://` endpoint, передать headers и вручную отправлять и читать messages. Browser interface или DevTools показывает handshake и frames реального приложения. Перед проверкой нужно знать Authentication, subprotocol и application message format, потому что WebSocket сам их не определяет.
 
-### Как тестировать API security, CORS и error responses?
+20. уметь подключаться, слушать, обрабатывать события, проверять сообщения.
 
-**Ответ:**
+   **Ответ:** Client регистрирует handlers для open, message, error и close, затем подключается и отправляет нужное сообщение или subscription. Полученные events складываются в thread-safe queue, где тест ждёт сообщение нужного type и проверяет schema и fields. В teardown connection закрывается, а listener освобождается даже после падения теста.
 
-Basic Auth, Bearer tokens и OAuth flows тестируются через approved test credentials. Проверяются forbidden roles, missing или expired tokens, invalid input, rate limits и empty successful responses, например `204`. CORS — browser rule cross-origin browser requests, а не authentication. Secrets и tokens нельзя помещать в source code, logs или reports.
+21. реализация клиентов WebSocket для автотестов (на Java/Python/JS)
 
-### Какие advanced API topics нужно знать?
+   **Ответ:** В Java можно использовать стандартный `java.net.http.WebSocket` или library проекта, в Python — подходящий WebSocket client, в JavaScript — browser `WebSocket` или Node.js library. Client wrapper обычно отвечает за connect, authentication, send, queue сообщений, filtering, timeout и close. Выбор должен поддерживать TLS, headers и subprotocol, необходимые системе.
 
-**Ответ:**
+22. таймауты, ожидание и фильтрация нужных сообщений
 
-Contract testing проверяет agreement consumer и provider, например через OpenAPI или Pact. Versioning требует compatibility rules, чтобы old clients не ломались неожиданно. GraphQL использует queries для чтения и mutations для изменения data, а schema validation — часть contract. Senior work также включает SOAP WS-Security, OWASP API risks, retries с безопасной idempotency, mocks или virtual services, multi-environment CI и передачу context между requests без shared unsafe test state.
+   **Ответ:** Тест ждёт не первое сообщение, а event с нужным type, correlation id и business key до общего deadline. Неподходящие events сохраняются или пропускаются по явному правилу, а timeout report показывает все полученные сообщения без secrets. `Thread.sleep()` ненадёжен, потому что не синхронизирован с фактическим событием.
 
----
+23. Работа с REST:
 
-## Ссылки на теорию
+   **Ответ:** REST testing включает проверку resources, methods, status codes, representations, headers, Authentication, authorization и error contract. Отдельно проверяются idempotency, pagination, filtering, concurrency и cache semantics, если они заявлены. Tests должны быть независимыми и управлять своими данными через API или fixtures.
 
-- [[09 Основы тестирования API]]
+24. умение валидировать JSON-схемы ответа (JSON Schema, Ajv, fastjsonschema)
+
+   **Ответ:** JSON Schema проверяет types, required properties, formats, ranges и структуру response. Ajv используется в JavaScript, fastjsonschema — в Python; в других языках есть собственные validators. Schema validation не проверяет правильность business values, поэтому после неё нужны semantic assertions, а версия dialect должна совпадать со schema.
+
+25. поддержка разных методов аутентификации (Bearer-token, Basic Auth, OAuth2)
+
+   **Ответ:** Basic Auth передаёт base64-encoded credentials в Authorization header и безопасен только поверх TLS. Bearer token также передаётся в header, но даёт доступ любому предъявителю, поэтому его нужно защищать. OAuth 2.0 описывает получение делегированного access token; test client должен использовать flow, разрешённый для его типа, и не хранить secrets в коде.
+
+26. обработка ошибок и нестандартных ответов (например, пустой body + статус 204)
+
+   **Ответ:** Test должен сначала интерпретировать status и headers, а затем разбирать body только когда он разрешён contract. Response `204 No Content` не должен содержать message body, поэтому попытка обязательной JSON deserialization является ошибкой client. Для error responses проверяются стабильный error code, message, field details и отсутствие sensitive information.
+
+27. Безопасность и инфраструктура:
+
+   **Ответ:** API требует TLS, безопасного Authentication, точной authorization, input validation, rate limiting, secret management и audit logs. Инфраструктура должна контролировать certificates, gateways, network policies, environments и dependency versions. Security tests запускаются только в разрешённом scope и не должны повреждать общие данные.
+
+28. CORS (что это и в общих чертах механизм работы)
+
+   **Ответ:** CORS — browser mechanism, который разрешает server сообщить, каким origins доступен cross-origin response. Для некоторых requests browser сначала отправляет preflight `OPTIONS` с origin, method и headers, а server отвечает `Access-Control-Allow-*`; simple request может уйти без preflight. CORS не является server-to-server защитой и не заменяет Authentication или authorization.
+
+29. Архитектура:
+
+   **Ответ:** API test framework обычно разделяет transport client, models и serialization, domain services, data builders, assertions, configuration и reporting. Tests вызывают business operations, но сохраняют доступ к raw request и response. Общие retries и Authentication размещаются централизованно, сохраняя явные границы и диагностику.
+
+30. контрактное тестирование (Pact, OpenAPI)
+
+   **Ответ:** OpenAPI-based tests проверяют, соответствует ли implementation описанной schema и operations. Pact реализует consumer-driven contract: consumer публикует ожидаемые interactions, а provider подтверждает их на своей стороне. Contract tests быстро находят несовместимость между services, но не заменяют functional и E2E testing.
+
+31. версионирование API
+
+   **Ответ:** Версию можно передавать в URI, header или media type; главное — единая документированная политика. Backward-compatible additions обычно не требуют новой major version, а удаление или изменение semantics требует controlled migration. Tests должны запускаться для поддерживаемых versions и проверять deprecation headers или сроки отключения, если они используются.
+
+32. pipeline запросов с передачей контекста между шагами
+
+   **Ответ:** Один шаг создаёт resource и сохраняет только необходимые значения, например id или token, в scenario context, а следующий использует их. Context должен быть отдельным для каждого test и thread, чтобы parallel execution не смешивал данные. Teardown удаляет созданные resources, а logs связывают requests через correlation id.
+
+33. Протоколы и форматы:
+
+   **Ответ:** Protocol определяет правила взаимодействия, transport доставляет данные, а format описывает их представление. Например, HTTP может переносить JSON, SOAP использует XML message model, а WebSocket переносит application-defined text или binary messages. Эти понятия нужно разделять при выборе tools и assertions.
+
+34. GraphQL: query, mutation, schema validation
+
+   **Ответ:** GraphQL `query` читает данные, `mutation` выполняет изменения, а schema определяет types, fields, arguments и доступные operations. Response может иметь HTTP 200 и одновременно содержать массив `errors`, поэтому проверяются обе части GraphQL response. Validation включает соответствие query schema, types и business authorization каждого field.
+
+35. WebSockets: работа через брокеры, pub/sub
+
+   **Ответ:** WebSocket может быть каналом между client и gateway, а broker реализует topics, routing и pub/sub за gateway. Это разные уровни: WebSocket не предоставляет broker semantics сам по себе. В тесте проверяются subscription, delivery, filtering, duplicates, ordering и reconnect с учётом гарантий конкретного broker.
+
+36. SOAP + WS-Security
+
+   **Ответ:** WS-Security добавляет security information в SOAP Header: signatures, encryption, timestamps и security tokens. Тест проверяет корректный namespace, signature, certificate, expiry и поведение при изменённом или отсутствующем security header. Transport TLS всё равно нужен, потому что message-level security и channel security решают разные задачи.
+
+37. Безопасность и контроль:
+
+   **Ответ:** Контроль включает least privilege, schema и input validation, audit trail, rate limits, inventory API versions и управление secrets. Негативные tests проверяют чужие object ids, запрещённые fields и functions, malformed data и утечку информации. Результаты security testing обрабатываются конфиденциально.
+
+38. OWASP API security
+
+   **Ответ:** OWASP API Security Top 10 помогает системно проверять риски вроде Broken Object Level Authorization, Broken Authentication, unrestricted resource consumption, security misconfiguration и unsafe consumption of APIs. Я использую список как checklist для threat modeling и test design, но не как полную security methodology. Приоритет зависит от architecture и business impact конкретного API.
+
+39. тестирование ролей, токенов, JWT
+
+   **Ответ:** Для каждой operation строится матрица role → разрешённое действие и проверяются положительные и отрицательные случаи, включая доступ к чужому object id. Для token проверяются issuer, audience, expiry, scope и revocation policy; для signed JWT также signature, algorithm и key id. Простое декодирование JWT не доказывает его подлинность.
+
+40. Rate limiting, retries
+
+   **Ответ:** Rate limiting проверяется около границы: допустимые requests проходят, превышение даёт согласованный status, часто 429, и headers вроде `Retry-After`, если они предусмотрены. Retry выполняют с ограничением attempts, exponential backoff и jitter. Автоматически повторять безопасно только идемпотентную operation или request с отдельной защитой от duplicate side effects.
+
+41. Инфраструктура:
+
+   **Ответ:** API tests зависят от endpoints, DNS, certificates, gateways, service discovery, databases, queues и observability. Эти зависимости должны иметь versioned configuration, health checks и понятный ownership. Test framework не должен скрывать infrastructure failure как обычный assertion failure.
+
+42. интеграция в CI/CD
+
+   **Ответ:** В Pull Request запускаются быстрые contract и component/API tests, после deployment — Smoke, а широкий набор — по согласованному этапу или расписанию. Pipeline передаёт environment и secrets защищённо, публикует requests/responses с маскированием и возвращает корректный exit code. Нестабильный внешний service лучше заменить controlled mock на раннем этапе.
+
+43. multi-env execution
+
+   **Ответ:** Код tests остаётся одинаковым, а base URL, credentials, certificates, feature flags и timeouts приходят из environment-specific configuration. Test data и expected capabilities окружения тоже должны быть явными. Запрещённые destructive tests нельзя случайно запустить в production, поэтому environments защищаются allowlist и отдельными credentials.
+
+44. API mocking, virtual services
+
+   **Ответ:** Mock или virtual service возвращает управляемые responses внешней dependency и позволяет проверить errors, timeouts и редкие состояния. Он должен соответствовать contract и регулярно проверяться против реального provider, иначе появляется ложная уверенность. Для критичных integrations нужны и contract tests, и ограниченный набор tests с настоящим service.

@@ -3,19 +3,6 @@
 ## Содержание
 
 - [[#Вопросы и ответы]]
-	- [[#Что это такое и что нужно знать?]]
-	- [[#Какие практические навыки нужны Automation QA?]]
-	- [[#Какие ошибки и риски важны?]]
-- [[#Требования Intern и Junior]]
-- [[#Требования Middle и Senior]]
-	- [[#Что означают Given, When, Then, And и But?]]
-	- [[#Как работают Feature, Scenario, Background, Scenario Outline и Examples?]]
-	- [[#Как Gherkin steps связываются с Java code?]]
-	- [[#Что такое Cucumber, SpecFlow и Robot Framework?]]
-	- [[#Когда команде стоит использовать BDD?]]
-	- [[#Как нужно строить step definitions и hooks?]]
-	- [[#Как поддерживать большой BDD suite в CI?]]
-- [[#Ссылки на теорию]]
 
 **Связанные заметки:** [[00 Индекс Skills Matrix AQA]]
 
@@ -23,96 +10,150 @@
 
 ## Вопросы и ответы
 
-### Что это такое и что нужно знать?
+1. Базовые знания:
 
-**Короткий ответ:**
+   **Ответ:** BDD, или Behavior-Driven Development, — это подход к совместному уточнению поведения системы на конкретных примерах. Бизнес, разработчики и QA формируют общее понимание требований, а важные примеры можно записать как executable specifications. Cucumber и Gherkin поддерживают этот процесс, но сами по себе не делают команду BDD-командой.
 
-BDD описывает behaviour через общие examples. Given задаёт context, When — action, Then — observable result; Cucumber связывает Gherkin steps с кодом.
+2. стиль написания Given-When-Then
 
-### Какие практические навыки нужны Automation QA?
+   **Ответ:** `Given` описывает начальный контекст, `When` — событие или действие, а `Then` — наблюдаемый результат. Сценарий должен говорить на языке предметной области и показывать одно поведение, а не последовательность технических кликов. `Then` содержит проверку результата, но не детали реализации внутри базы данных или кода.
 
-**Короткий ответ:**
+3. основные ключевые слова: Feature, Scenario, Step, Background, Scenario Outline, Examples, And, But
 
-Использовать Feature, Scenario, Background, Scenario Outline, Examples, tags, hooks и reusable step layers; запускать tags и публиковать reports в CI.
+   **Ответ:** `Feature` группирует примеры одной возможности, а `Scenario` описывает конкретный пример поведения. Steps начинаются с `Given`, `When`, `Then`, `And` или `But`; отдельного ключевого слова `Step` в Gherkin нет. `Background` задаёт общий контекст, а `Scenario Outline` вместе с `Examples` запускает один шаблон для нескольких наборов значений.
 
-### Какие ошибки и риски важны?
+4. Background: как использовать повторяющиеся предусловия
 
-**Короткий ответ:**
+   **Ответ:** В `Background` выносят короткие понятные `Given` steps, которые действительно нужны каждому сценарию Feature или Rule. Он выполняется перед каждым сценарием, но после `Before` hooks. Если Background длинный или содержит техническую подготовку, лучше поднять шаг до бизнес-уровня, использовать hook для невидимой инфраструктуры или разделить Feature.
 
-Избегать technical UI steps, duplicated scenarios, hidden setup, giant step definitions и BDD, если stakeholders не используют examples.
+5. Scenario Outline: как параметризовать сценарии с Examples
 
----
+   **Ответ:** В `Scenario Outline` изменяемые значения записываются как `<parameter>`, а таблица `Examples` содержит одноимённые columns. Cucumber подставляет каждую строку таблицы и выполняет шаблон как отдельный сценарий. Outline полезен для нескольких значимых бизнес-примеров, но большая таблица комбинаций хуже читается и часто должна проверяться на более низком уровне.
 
-## Требования Intern и Junior
+6. Tags: для группировки и фильтрации сценариев
 
-- `Feature` описывает business capability, а `Scenario` — один example. `Given` задаёт context, `When` описывает action, `Then` задаёт наблюдаемый outcome. `And` и `But` продолжают предыдущий keyword без изменения смысла.
-- `Background` содержит короткие общие preconditions для каждого scenario одного feature. `Scenario Outline` — parameterised scenario; каждая строка `Examples` становится отдельным execution. Tags группируют scenarios и фильтруют run, например `@smoke`.
-- Cucumber связывает Gherkin step с Java method через step-definition annotations. `.feature` file запускается через Cucumber runner или по selected tags. Cucumber, SpecFlow и Robot Framework дают читаемые executable examples, но работают в разных language ecosystems.
-- Нужно писать business language: «When the customer pays» лучше, чем «When I click CSS selector». Дублирующиеся scenarios не нужны; при одинаковом behaviour меняются data через Scenario Outline.
+   **Ответ:** Tags вроде `@smoke`, `@api` или `@critical` ставятся над Feature, Rule, Scenario, Scenario Outline или Examples. Они позволяют выбирать набор запуска, применять conditional hooks и группировать отчёты. Tags должны отражать устойчивый смысл, а не превращаться в длинный список временных статусов.
 
----
+7. как связываются шаги Gherkin с Java/Python/JS-кодом
 
-## Требования Middle и Senior
+   **Ответ:** Cucumber сопоставляет текст шага с step definition по Cucumber Expression или regular expression. Annotation или функция `Given`, `When` либо `Then` регистрирует шаблон, а значения из текста преобразуются в arguments метода. Keywords не участвуют в определении уникальности текста, поэтому одинаковый текст для `Given` и `Then` создаёт неоднозначность, а не два разных шага.
 
-- BDD полезен, когда business, QA и development совместно обсуждают examples. Он не полезен, если feature files пишутся только после code и их никто вне QA не читает. При review проверяются понятный outcome, одно behaviour, meaningful data, отсутствие hidden setup и duplication.
-- Hooks `@Before` и `@After` подготавливают и очищают scenario. Они должны быть маленькими и видимыми; business actions в hooks помещать нельзя. Step definition делается тонким, ниже располагаются reusable domain step layer и UI/API clients. Atomic steps раскрывают низкоуровневые actions, а reusable DSL выражает business actions. В feature files лучше DSL.
-- Измеряются requirement-to-scenario coverage, execution time, pass rate и flaky rate. Большому suite нужны tag strategy, parallel-safe data, разделённые features и CI selection по tag, branch или changed component.
-- Cucumber настраивается через tags, glue packages, dry run, formatter plugins и report paths. CI публикует reports и может передавать results в Jira/Xray или TMS. Contract examples можно связывать с OpenAPI или Pact, но Gherkin scenario не заменяет API contract.
+8. простейшие примеры step-definition (Given, When, Then → метод)
 
----
+   **Ответ:** Например, Java-метод с `@Given("пользователь авторизован")` подготавливает пользователя, `@When("он отправляет заказ")` вызывает действие, а `@Then("статус заказа {string}")` принимает параметр и проверяет результат. Step definition должен делегировать работу API client или Page Object, а не содержать весь Selenium-код. Тогда Gherkin остаётся читаемым, а техническая логика переиспользуется отдельно.
 
-## Подробные вопросы и ответы
+9. навыки запуска .feature файла
 
-### Что означают Given, When, Then, And и But?
+   **Ответ:** `.feature` files запускаются через runner выбранной интеграции, build tool, IDE или Cucumber CLI. Нужно настроить путь к features, packages с glue code, plugins и при необходимости tag filter. В CI запуск должен выполняться одной воспроизводимой командой и возвращать ненулевой exit code при падении сценария.
 
-**Ответ:**
+10. антипаттерн: “технические шаги” (слишком подробные и нечитабельные)
 
-`Given` описывает starting context, `When` — action, а `Then` — observable result. `And` и `But` продолжают предыдущий step в читаемом language. Scenario должен описывать behaviour, а не technical clicks или selectors.
+   **Ответ:** Шаги вроде «нажать кнопку с id submit» и «подождать две секунды» связывают Feature с UI и скрывают бизнес-цель. Лучше написать «Когда пользователь оформляет заказ», а клики и ожидания оставить в step definition и Page Object. Исключение возможно, если конкретное взаимодействие само является важным поведением для пользователя.
 
-```gherkin
-Given a registered customer has an item in the cart
-When the customer pays with a valid card
-Then the order status is "Paid"
-```
+11. антипаттерн: дублирование сценариев без необходимости
 
-### Как работают Feature, Scenario, Background, Scenario Outline и Examples?
+   **Ответ:** Дубли появляются, когда одно правило копируют ради других данных, каналов или небольших технических различий. Сначала я проверяю, можно ли выбрать несколько действительно важных Examples, применить Scenario Outline или перенести подробные комбинации на Unit/API level. Нельзя объединять разные бизнес-правила только ради уменьшения числа строк — читаемость важнее формального отсутствия повторов.
 
-**Ответ:**
+12. Инструменты:
 
-`Feature` описывает одну business capability. `Scenario` — один concrete example. `Background` содержит короткие shared preconditions для каждого scenario feature и не должен скрывать главное behaviour. `Scenario Outline` — один parameterised scenario, а каждая строка `Examples` становится отдельным execution. Tags, например `@smoke` или `@api`, группируют scenarios и фильтруют run.
+   **Ответ:** Инструмент должен поддерживать выбранный язык, Gherkin или другой удобный DSL, интеграцию с test runner, tags, hooks и отчётность. Также важны поддержка IDE, CI и жизненный цикл проекта. Выбор инструмента следует делать после согласования самого BDD-процесса, а не наоборот.
 
-### Как Gherkin steps связываются с Java code?
+13. знание назначения Cucumber, SpecFlow и Robot Framework
 
-**Ответ:**
+   **Ответ:** Cucumber выполняет Gherkin scenarios и связывает их со step definitions в поддерживаемых языках, включая Java и JavaScript. SpecFlow выполняет похожую задачу в экосистеме .NET. Robot Framework — более общий keyword-driven automation framework с табличным синтаксисом; его можно использовать для acceptance testing, но это не реализация Gherkin и не автоматическое применение BDD.
 
-Cucumber находит Java methods с annotations `@Given`, `@When` и `@Then`. Text или expression annotation сопоставляется с Gherkin step. Runner запускает selected feature, directory или tag expression. Step definitions должны вызывать workflow или page/API layer, а не содержать длинный Selenium code.
+14. использование tags для фильтрации сценариев
 
-### Что такое Cucumber, SpecFlow и Robot Framework?
+   **Ответ:** При запуске задаётся tag expression, например `@smoke and not @wip`, после чего выполняются только подходящие scenarios. Выражение можно передать через runner configuration, CLI, system property или переменную CI — точный способ зависит от реализации Cucumber. Filter должен быть виден в отчёте, иначе неполный запуск легко принять за полную Regression testing.
 
-**Ответ:**
+15. Понимание BDD:
 
-Cucumber — BDD tool, запускающий Gherkin scenarios с bindings на языках, включая Java. SpecFlow — .NET/C# equivalent с Gherkin. Robot Framework — keyword-driven framework, который тоже может выражать readable acceptance scenarios. Tool выбирается по language, reporting, CI и stakeholder workflow команды.
+   **Ответ:** BDD начинается с обсуждения примеров и правил, а не с написания Feature files после готовой реализации. Часто используется формат Three Amigos, где бизнес, разработка и тестирование уточняют ожидаемое поведение вместе. Автоматизация выбранных примеров даёт обратную связь, но главная ценность — общее понимание до разработки.
 
-### Когда команде стоит использовать BDD?
+16. преимущества BDD: общий язык, документация, поведенческий подход
 
-**Ответ:**
+   **Ответ:** Общий язык уменьшает различия в понимании требований между ролями. Хорошие scenarios показывают поведение системы на конкретных примерах и после автоматизации могут служить актуальной living documentation. Польза сохраняется только при регулярном review: нечитаемые или устаревшие Feature files превращаются в ещё один дорогой слой тестов.
 
-BDD полезен, когда product, QA и development должны согласовать shared example до implementation. Он улучшает clarification и создаёт living documentation, если команда поддерживает её актуальность. BDD не подходит, если scenarios пишутся после coding, их читает только QA или feature требует technical unit-level feedback, а не business examples.
+17. зачем BDD нужен не только тестировщикам, но и бизнесу, разработке
 
-### Как нужно строить step definitions и hooks?
+   **Ответ:** Бизнес подтверждает правила и примеры, разработчики понимают ожидаемый результат и проектируют решение, а QA помогает найти пробелы и риски. Совместное обсуждение переносит обнаружение неоднозначностей на этап до кода. Если Feature files пишет только QA без участия других ролей, теряется основная ценность BDD.
 
-**Ответ:**
+18. когда BDD применять целесообразно, а когда нет
 
-Step definition должен быть тонким: он переводит Gherkin text в domain action. Reusable workflow или step layer выполняет business action, а page objects или API clients — technical interaction. Hooks `@Before` и `@After` подготавливают и очищают state; они не должны скрытно выполнять action, который должен показать scenario. Это исключает giant step definitions и hidden setup.
+   **Ответ:** BDD полезен для сложных бизнес-правил, нескольких заинтересованных ролей и продукта, где конкретные примеры помогают уточнить требования. Он менее выгоден для простых CRUD operations, технических проверок без бизнес-языка, короткого прототипа или команды, которая не готова совместно поддерживать specifications. Не каждый Unit или UI test нужно выражать через Gherkin.
 
-### Как поддерживать большой BDD suite в CI?
+19. ревью BDD кейсов (уметь замечать нарушения стиля, дублирование, проблемы в логике)
 
-**Ответ:**
+   **Ответ:** На review я проверяю одно ли поведение показывает Scenario, понятны ли Given–When–Then, наблюдаем ли результат и нет ли UI-деталей. Затем ищу лишние Background steps, повторяющиеся Examples, неоднозначные термины, зависимость сценариев и отсутствующие важные границы. Сценарий должен быть понятен участнику бизнеса без чтения step definitions.
 
-Нужны meaningful tags, fast feedback groups, parallel-safe data и отдельные UI, API и integration suites. Отслеживаются requirement coverage, execution time, pass rate и flaky rate. Cucumber настраивается через tag filters, glue packages, dry run, formatter plugins и report paths. CI может публиковать results в Jira/Xray или TMS и запускать impacted scenarios, но contract checks OpenAPI или Pact остаются отдельными tests.
+20. правила оформления сценария и фичи
 
----
+   **Ответ:** Один `.feature` file содержит одну `Feature`, объединяющую связанные business rules и examples. Названия описывают ценность и результат, scenarios независимы, steps короткие и используют единый domain language. Обычно достаточно нескольких шагов и одного основного `When`, хотя это рекомендация читаемости, а не синтаксическое ограничение.
 
-## Ссылки на теорию
+21. работа с hooks: @Before, @After, @BeforeStep, @AfterStep
 
-- [[20 Архитектура фреймворка автотестов]]
+   **Ответ:** `@Before` и `@After` выполняют setup и teardown вокруг каждого сценария, а `@BeforeStep` и `@AfterStep` — вокруг отдельных steps, если реализация Cucumber их поддерживает. Hooks можно ограничивать tag expression и использовать для технических задач: driver lifecycle, очистки и screenshots. Бизнес-предусловия лучше оставлять в Gherkin, а `After` должен освобождать ресурсы даже после падения сценария.
+
+22. Архитектура:
+
+   **Ответ:** BDD-слой должен отделять читаемые Feature files от технической реализации. Обычно цепочка выглядит так: Gherkin → тонкие step definitions → domain services, API clients или Page Objects → drivers и инфраструктура. Такое разделение уменьшает дублирование и позволяет менять UI без переписывания бизнес-текста.
+
+23. структурирование степов: atomic steps vs reusable DSL
+
+   **Ответ:** Atomic step выражает одно осмысленное действие или состояние, но слишком мелкие steps превращают Scenario в технический script. Reusable DSL использует устойчивые термины предметной области и скрывает детали реализации. Переиспользование не должно приводить к универсальным шагам с десятком parameters и разным скрытым поведением.
+
+24. разделение тестов по типам: UI, API, Integration
+
+   **Ответ:** Уровень проверки можно обозначить tag и разнести glue по packages или modules, сохраняя общий domain language там, где это полезно. API и Integration scenarios обычно быстрее UI, поэтому их запускают раньше и чаще. Один business example не обязательно дублировать на всех уровнях: каждый тест должен закрывать свой риск.
+
+25. Метрики и поддержка:
+
+   **Ответ:** Метрики должны помогать находить проблемы поддержки, а не оценивать людей по числу scenarios. Полезны duration, pass rate, flaky rate, доля undefined или pending steps и возраст падающих tests. Количество Feature files или steps без контекста ничего не говорит о качестве покрытия.
+
+26. покрытие требований BDD-тестами
+
+   **Ответ:** Связь можно вести через requirement id, tag или test management integration и проверять, какие business rules представлены Examples. Но 100% формальной связи не означает хорошее покрытие границ и рисков. BDD следует применять к важному наблюдаемому поведению, а технические требования покрывать подходящими тестами других уровней.
+
+27. метрики времени выполнения и стабильности
+
+   **Ответ:** Я отслеживаю duration по scenario и tag, очередь запуска, flaky rate, повторные запуски и основные причины падений. Медленные и нестабильные сценарии группируются по уровню и dependency, после чего устраняется причина или проверка переносится ниже. Рост параллелизма полезен только при изолированных данных и окружениях.
+
+28. Архитектура и реализация:
+
+   **Ответ:** Реализация должна иметь явные границы между specifications, glue code, domain actions, assertions, test data и инфраструктурой. Конфигурация и driver lifecycle управляются централизованно, но test state изолируется по scenario. Архитектуру расширяют только под реальные повторяющиеся задачи, не создавая большой framework заранее.
+
+29. проектирование и внедрение многоуровневого BDD-фреймворка
+
+   **Ответ:** Сначала выбираются критичные business capabilities и подходящий уровень проверки для каждой. Feature layer остаётся независимым от UI, step definitions вызывают application layer, а ниже находятся UI adapters, API clients, data builders и environment services. Внедрение лучше начать с небольшой Feature, проверить читаемость, скорость и поддержку, а затем масштабировать правила.
+
+30. поддержка step reuse через динамические/параметризованные степы
+
+   **Ответ:** Cucumber Expressions позволяют передавать `{string}`, `{int}` и custom parameter types, поэтому один устойчивый step обслуживает несколько значений. Параметризация оправдана, когда смысл шага остаётся одним и тем же. Динамический step с множеством optional parameters и ветвлением лучше разделить, иначе он становится нечитаемым и непредсказуемым.
+
+31. оптимизация производительности большого пула .feature файлов
+
+   **Ответ:** Сначала я измеряю время по scenarios и определяю, где задержка: UI, данные, hooks, окружение или setup. Затем переношу подходящие проверки на API/component level, исключаю дубли, сокращаю дорогой Background, переиспользую безопасную инфраструктуру и включаю изолированный parallel execution. Tag filters ускоряют отдельный pipeline, но полный набор всё равно должен запускаться по согласованной стратегии.
+
+32. Интеграция:
+
+   **Ответ:** BDD framework обычно интегрируется с build tool, CI, test reports, issue tracker и test management system. Интеграция должна сохранять traceability и artifacts, но не связывать Feature files с внутренним API одного инструмента без необходимости. Ошибка публикации отчёта не должна скрывать реальный статус выполнения tests.
+
+33. CI/CD: выбор стратегии запуска BDD (по ветке, по tag'у, по impacted code)
+
+   **Ответ:** На Pull Request я бы запускал быстрые scenarios по tag и затронутым компонентам, после merge — более широкий набор, а полный Regression testing — по расписанию или перед релизом. Impacted-code selection ускоряет обратную связь, но требует надёжной карты зависимостей и резервного полного запуска. Выбранные filters и фактический scope нужно публиковать в отчёте.
+
+34. интеграция отчётов с Jira / Test Management (например, через XRAY + Gherkin)
+
+   **Ответ:** Scenarios связываются с test cases или requirements через стабильные identifiers или tags, а CI импортирует Cucumber JSON/JUnit results через plugin или API. Интеграция может обновлять Test Execution и прикладывать ссылку на artifacts. Нельзя автоматически перезаписывать вручную поддерживаемые сценарии без согласованного источника истины.
+
+35. BDD + contract testing (переиспользование фич из OpenAPI или Pact)
+
+   **Ответ:** BDD examples описывают бизнес-поведение, OpenAPI — interface schema, а Pact — consumer-driven contracts между сервисами. Из OpenAPI можно генерировать технические contract checks, а Pact проверяет согласованные interactions, но они не заменяют Gherkin scenarios автоматически. Переиспользовать лучше domain examples и test data, сохраняя отдельные цели и ownership каждого уровня.
+
+36. настройка запуска: tags, glue, dryRun, monochrome, plugin
+
+   **Ответ:** `tags` фильтрует scenarios, `glue` указывает packages со step definitions и hooks, а `dryRun` проверяет соответствие steps definitions без выполнения сценариев. `plugin` подключает formatters и reports, например `pretty`, JSON, JUnit или HTML. `monochrome` исторически упрощает console output без ANSI-цветов; доступность и способ задания options зависят от runner и версии Cucumber.
+
+37. интеграция с CI (Jenkins, GitLab CI)
+
+   **Ответ:** CI устанавливает зависимости, запускает Cucumber headlessly одной командой и публикует отчёты, logs и screenshots. Tags, environment и parallelism передаются через variables, а secrets хранятся в CI credentials. Pipeline должен завершаться ошибкой при failed или undefined scenarios и всегда сохранять artifacts для диагностики.

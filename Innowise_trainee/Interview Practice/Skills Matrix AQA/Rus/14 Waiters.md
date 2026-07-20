@@ -3,19 +3,6 @@
 ## Содержание
 
 - [[#Вопросы и ответы]]
-	- [[#Что это такое и что нужно знать?]]
-	- [[#Какие практические навыки нужны Automation QA?]]
-	- [[#Какие ошибки и риски важны?]]
-- [[#Требования Intern и Junior]]
-- [[#Требования Middle и Senior]]
-	- [[#Какие виды waits предоставляет Selenium?]]
-	- [[#Почему нельзя смешивать implicit и explicit waits?]]
-	- [[#Как ждать готовность DOM и application?]]
-	- [[#Как написать explicit или custom Expected Condition?]]
-	- [[#Как ждать loader или несколько events?]]
-	- [[#Чем FluentWait отличается от WebDriverWait?]]
-	- [[#Как проектировать и диагностировать waits во framework?]]
-- [[#Ссылки на теорию]]
 
 **Связанные заметки:** [[00 Индекс Skills Matrix AQA]]
 
@@ -23,96 +10,118 @@
 
 ## Вопросы и ответы
 
-### Что это такое и что нужно знать?
+1. виды ожиданий
 
-**Короткий ответ:**
+   **Ответ:** В Selenium основные стратегии — implicit wait и explicit wait; в Java настраиваемый explicit wait строится через `FluentWait`, а `WebDriverWait` является его специализацией. Отдельно WebDriver имеет page load timeout и script timeout, но они не заменяют ожидание состояния UI. Fixed delay через `Thread.sleep()` — это пауза, а не условное ожидание.
 
-Implicit wait глобально влияет на lookup; explicit wait ожидает одно condition; FluentWait настраивает polling и ignored exceptions. Смешивание ожиданий делает timing непредсказуемым.
+2. различия между implicit, explicit, fluent wait
 
-### Какие практические навыки нужны Automation QA?
+   **Ответ:** Implicit wait глобально влияет на поиск элементов в текущей session. Explicit wait опрашивает конкретное условие до timeout и подходит для visibility, clickability или изменения состояния. `FluentWait` позволяет настроить input object, timeout, polling interval, ignored exceptions и сообщение; `WebDriverWait` предоставляет удобный вариант для WebDriver.
 
-**Короткий ответ:**
+3. поведение при совмещении ожиданий
 
-Ожидать значимый DOM, UI, network или domain state и создавать reusable conditions с timeout diagnostics.
+   **Ответ:** Когда explicit condition внутри каждого polling вызывает `findElement()`, implicit wait может задерживать каждую такую попытку. В результате фактическое время становится трудно предсказать и может превысить explicit timeout. Поэтому Selenium прямо рекомендует не смешивать implicit и explicit waits.
 
-### Какие ошибки и риски важны?
+4. ожидание полной загрузки DOM через document.readyState
 
-**Короткий ответ:**
+   **Ответ:** Через JavaScript можно ждать, пока `document.readyState` станет `complete`; это означает завершение загрузки document и связанных ресурсов по правилам браузера. Но состояние не гарантирует завершение поздних AJAX/fetch requests, rendering framework или animations. После него всё равно нужно ожидать конкретное состояние, необходимое тесту.
 
-Избегать `Thread.sleep()`, excessive timeouts, blind retries и считать `document.readyState` доказательством готовности application.
+5. примеры кастомных условий с JS
 
----
+   **Ответ:** Custom condition может через `JavascriptExecutor` проверять `document.readyState`, наличие глобального application flag или вычисленное состояние элемента. Wait повторяет script до результата `true` либо непустого ожидаемого значения. Условие должно быть быстрым, не менять систему и иметь понятное диагностическое сообщение при timeout.
 
-## Требования Intern и Junior
+6. почему Thread.sleep() — плохо?
 
-- Implicit wait — один global timeout для element lookup. Explicit wait периодически проверяет одно condition в течение ограниченного времени. `FluentWait` является гибкой основой: в нём задаются timeout, polling interval и ignored exceptions. Implicit и explicit waits нельзя смешивать, потому что их timeouts непредсказуемо сочетаются.
-- `Thread.sleep()` всегда ждёт всё заданное время, даже если page уже ready, и падает, если page требуется больше времени. Нужно ждать meaningful state.
-- `document.readyState == "complete"` означает завершение document load event. Это не доказывает завершение data single-page application, AJAX requests, animations или loaders. Custom JavaScript condition допустим только при надёжном state, который предоставляет application.
+   **Ответ:** `Thread.sleep()` всегда ждёт весь заданный интервал, даже если приложение готово раньше, поэтому набор становится медленнее. Если приложение готово позже, тест всё равно падает, то есть стабильность не гарантируется. Кроме того, sleep не сообщает, какое условие ожидалось; его можно временно использовать для диагностики, но не как постоянную synchronization strategy.
 
----
+7. использование и знания методов с Expected Conditions (как применить для определенных дествия при работе с WebElements)
 
-## Требования Middle и Senior
+   **Ответ:** Перед чтением текста достаточно visibility, перед click обычно ожидают clickability, а после удаления — invisibility или staleness. Также доступны presence, text/attribute conditions, frame availability, alert presence, URL и window count. Условие выбирают по следующему действию, а не применяют `elementToBeClickable` ко всем случаям.
 
-- `WebDriverWait` используется с condition visible, clickable, invisible, text present, frame available или alert present. Например, сначала ожидается invisibility loader, а затем выполняется click result. Custom `ExpectedCondition` может повторно проверять, что text element содержит нужное value.
-- FluentWait отличается от обычного WebDriverWait возможностью выбрать polling period и ignored exception set. Нельзя игнорировать широкие exceptions: это скрывает реальный defect.
-- Reusable waits размещаются в небольшом `WaitUtils` или condition factory. Отдельно рассматриваются DOM readiness, network completion, UI visibility и business state. Negative wait доказывает, что element не появился за короткий согласованный timeout.
-- Для flaky tests логируются condition, timeout, elapsed time, URL, locator и screenshot. Conditions объединяются только если user flow действительно требует оба события, например «result visible и spinner gone». Dynamic timeouts должны обосновываться особенностью environment или data, а не скрывать slow behaviour.
+8. виды explicity wait
 
----
+   **Ответ:** Explicit waits различаются ожидаемым состоянием: DOM presence, visibility, interactability, изменение текста или attribute, disappearance, staleness, frame, alert, URL, title и windows. Можно объединять conditions через `and`, `or` и `not` либо писать custom predicate. Это не разные механизмы, а разные условия одного polling wait.
 
-## Подробные вопросы и ответы
+9. виды implicity wait
 
-### Какие виды waits предоставляет Selenium?
+   **Ответ:** В Selenium implicit wait — один глобальный timeout для команд поиска элементов, а не набор разных видов. Он задаётся для session и действует, пока его не изменить, причём значение по умолчанию равно нулю. Page load и script timeouts — отдельные настройки WebDriver и не являются разновидностями implicit wait.
 
-**Ответ:**
+10. пример реализации explicity wait
 
-Implicit wait — session-wide timeout для поиска element. Explicit wait периодически проверяет выбранное condition до успеха или timeout. `WebDriverWait` — частый class explicit wait Selenium. `FluentWait` — более configurable base class. `Thread.sleep()` не является Selenium wait: он останавливает test на fixed time.
+   **Ответ:** В Java создаётся `WebDriverWait` с `Duration`, затем вызывается `until`, например ожидание `visibilityOfElementLocated(By.id("status"))`. Возвращённый WebElement можно сразу использовать, не выполняя второй поиск. Timeout и условие следует называть по смыслу действия, чтобы падение было понятно из отчёта.
 
-### Почему нельзя смешивать implicit и explicit waits?
+11. почему не стоит использовать одновременно implicit и explicit wait
 
-**Ответ:**
+   **Ответ:** Explicit wait многократно вызывает condition, а поиск элемента внутри condition каждый раз может дополнительно ждать implicit timeout. Из-за этого итоговая задержка становится непредсказуемой, усложняются отладка и расчёт timeout. Проще оставить implicit wait равным нулю и централизованно использовать explicit conditions.
 
-Implicit wait влияет на каждый element lookup. Explicit wait повторно делает lookups, пока ждёт condition. При двух waits один poll может ждать implicit timeout, из-за чего общий timeout становится больше и непредсказуемее. Обычно implicit wait остаётся равным нулю, а explicit waits используются для meaningful states.
+12. чем отличается FluentWait от обычного WebDriverWait
 
-### Как ждать готовность DOM и application?
+   **Ответ:** В Java `WebDriverWait` наследуется от `FluentWait<WebDriver>` и заранее ориентирован на WebDriver, игнорируя некоторые ошибки поиска. `FluentWait<T>` можно использовать с любым input type и явно настраивать polling interval, ignored exceptions, timeout и message supplier. Поэтому WebDriverWait подходит большинству UI-условий, а FluentWait нужен для более общей или специальной настройки.
 
-**Ответ:**
+13. написание кастомных ExpectedCondition (например: “пока элемент не содержит определённый текст”).
 
-`document.readyState == "complete"` подтверждает, что browser завершил загрузку document. Это не доказывает завершение API requests, rendering или animation SPA. Этот signal используется только как низкоуровневый, затем ожидается user-visible или business-ready state: loaded result list или enabled Pay button. Custom JavaScript check допустим, только если application предоставляет stable state.
+   **Ответ:** Custom condition получает driver, находит элемент и возвращает `true` только когда его текст удовлетворяет правилу, например `!element.getText().contains(unwanted)`. При временном отсутствии или обновлении элемента можно осознанно обработать `NoSuchElementException` и `StaleElementReferenceException`, но не скрывать остальные ошибки. У condition должно быть описание, которое попадёт в `TimeoutException`.
 
-### Как написать explicit или custom Expected Condition?
+14. ожидание появления/исчезновения лоадеров или оверлеев
 
-**Ответ:**
+   **Ответ:** Перед действием можно дождаться visibility loader, если его появление обязательно, а затем — `invisibilityOfElementLocated` для loader или overlay. Если loader появляется слишком быстро и не всегда заметен, обычно достаточно ждать его отсутствия и одновременно требуемого состояния целевого элемента. Locator должен находить все блокирующие overlays, иначе click может оставаться перехваченным.
 
-Создаётся `WebDriverWait` с понятным timeout и ожиданием одного condition. Custom condition возвращает `true`, только когда есть нужный state.
+15. Архитектура ожиданий:
 
-```java
-new WebDriverWait(driver, Duration.ofSeconds(10))
-    .until(d -> d.findElement(message).getText().contains("Saved"));
-```
+   **Ответ:** Ожидания должны быть частью interaction layer и выражать состояние приложения, а не случайные задержки внутри tests. Общие timeouts и polling задаются централизованно, а domain-specific conditions располагаются рядом с соответствующими Page Objects или services. Ошибка ожидания должна сохранять condition, duration, locator и artifacts.
 
-Это лучше sleep: test продолжается сразу после correct message и получает полезный timeout, если message не появилось.
+16. переиспользуемая инфраструктура для ожиданий (WaitUtils, ConditionFactory, AjaxHelper, DomHelper)
 
-### Как ждать loader или несколько events?
+   **Ответ:** `WaitUtils` может создавать настроенный WebDriverWait, а `ConditionFactory` — давать небольшие повторно используемые conditions. `DomHelper` и `AjaxHelper` оправданы только для реально общих сигналов приложения. Не стоит делать один огромный helper с десятками скрытых retries: Page Object должен вызывать понятное условие и сохранять контекст ошибки.
 
-**Ответ:**
+17. разделение ожиданий по уровням: DOM, network, UI, state
 
-Сначала ожидается invisibility loader или overlay, затем result, нужный user. Для compound state создаётся condition, проверяющий обе части: result visible **и** spinner gone. Negative wait проверяет, что unwanted element не появился за короткий agreed period; он применяется, только если absence — ожидаемое behaviour.
+   **Ответ:** DOM wait проверяет presence или attribute, UI wait — visibility и возможность взаимодействия, network wait — нужный response или отсутствие активных requests, а state wait — бизнес-состояние системы. Эти сигналы неравнозначны: наличие в DOM не означает готовность UI, а завершение одного request не гарантирует обновление страницы. Я жду ближайшее наблюдаемое состояние, необходимое следующему действию.
 
-### Чем FluentWait отличается от WebDriverWait?
+18. интеграция ожиданий в архитектуру Page Object / Screenplay / BDD
 
-**Ответ:**
+   **Ответ:** В Page Object ожидание размещается внутри метода действия или проверки, например `checkoutPage.waitUntilReady()`, а test не знает технический locator. В Screenplay condition оформляется как Question или interaction, а в BDD step вызывает domain action, не упоминая timeout. При этом слишком широкое автоматическое ожидание в каждом методе может скрывать проблему, поэтому условия должны быть конкретными.
 
-`WebDriverWait` — specialised FluentWait для WebDriver и обычно достаточен. FluentWait позволяет выбрать polling interval и ignored exceptions. Игнорируются только ожидаемые transient exceptions, например stale element при известном redraw; broad exceptions скрывают defects.
+19. Работа с нестандартными условиями:
 
-### Как проектировать и диагностировать waits во framework?
+   **Ответ:** Для нестандартного состояния сначала нужно найти надёжный наблюдаемый сигнал: DOM attribute, API status, browser event или application state. Затем его оформляют как polling condition с ограниченным timeout и диагностикой. Само ожидание не должно выполнять необратимые действия при каждом polling.
 
-**Ответ:**
+20. сложные условия: ожидание нескольких событий одновременно (пример: элемент появился и спиннер исчез)
 
-Reusable waits размещаются в небольшом `WaitUtils` или condition factory. DOM, network, UI и business-state waits отделяются. При failure логируются condition name, timeout, elapsed time, URL, locator, screenshot и relevant browser или network evidence. Нельзя повышать все timeouts после одного slow run: нужно найти data, environment, missing synchronisation event или реальную performance problem.
+   **Ответ:** Можно объединить conditions через логическое `and` или написать predicate, который проверяет visibility элемента и invisibility spinner. Важно, чтобы обе проверки выполнялись в одном polling cycle и корректно обрабатывали временное изменение DOM. Иногда надёжнее ждать готового состояния целевого элемента, если оно уже гарантирует исчезновение spinner по контракту UI.
 
----
+21. ожидания для нестабильных приложений (проверка через цикл + retry logic)
 
-## Ссылки на теорию
+   **Ответ:** FluentWait уже реализует ограниченный polling loop, поэтому собственный бесконечный цикл не нужен. Retry допустим для временной проверки состояния или идемпотентного запроса с известными transient errors, но повтор необратимого действия может создать дубликаты. Если приложение постоянно требует больших retries, нужно исследовать environment, данные и сам дефект, а не только увеличивать timeout.
 
-- [[17 Основы Selenium WebDriver]]
+22. сценарии "отрицательных ожиданий" — убедиться, что элемент не появился
+
+   **Ответ:** Отрицательное ожидание должно наблюдать систему в течение согласованного интервала и завершаться ошибкой, если запрещённый элемент появился. Простая мгновенная проверка `findElements().isEmpty()` не доказывает, что элемент не появится через секунду. При использовании `not` важно учитывать, что ошибки вложенного condition могут менять результат, поэтому простой custom predicate часто понятнее.
+
+23. Отладка и оптимизация:
+
+   **Ответ:** Сначала нужно измерить, какие conditions чаще дают timeout и сколько времени они реально занимают. Затем проверяются locator, выбранное состояние, application events и различия окружений. Оптимизация означает точное условие и раннее завершение, а не бездумное уменьшение всех timeouts.
+
+24. анализ причин флакания из-за ожиданий (ошибки, тайминги, задержки сетевого слоя)
+
+   **Ответ:** Я сопоставляю timestamp шагов, browser console, network events, screenshots и server logs, чтобы понять, тест действовал рано или приложение не достигло состояния. Частые причины — ожидание presence вместо visibility, stale element, animation, незавершённый request и общий test data. После исправления запускаю тест многократно и параллельно на том же окружении, чтобы подтвердить стабильность.
+
+25. построение логов ожиданий: сколько ждали, что ждали, когда не дождались
+
+   **Ответ:** Лог должен содержать название condition, locator или resource, start time, timeout, фактическую duration и последнее наблюдаемое состояние. При timeout добавляются screenshot, page URL, browser console и при необходимости network/server correlation id. Не нужно логировать каждый polling на обычном уровне, иначе полезная информация потеряется в шуме.
+
+26. динамическая подстройка ожиданий (время ожидания зависит от тестовых данных/окружения)
+
+   **Ответ:** Допустимо иметь несколько обоснованных timeout profiles, например local, CI и длительная асинхронная операция, либо вычислять deadline из SLA конкретного процесса. Выбор должен быть явным и ограниченным, а не автоматически увеличиваться после каждого падения. Слишком разные timeouts между окружениями могут скрыть проблему производительности.
+
+27. JSExecutor:
+
+   **Ответ:** JavascriptExecutor позволяет читать browser state, который неудобно получить через обычный WebDriver API. Его можно использовать внутри explicit condition, но script должен быть коротким, безопасным и совместимым с приложением. JS не должен обходить обычное пользовательское взаимодействие без технической причины.
+
+28. ожидание загрузки DOM дерева (JSExecutor)
+
+   **Ответ:** Wait может выполнять `return document.readyState === 'complete'` через JavascriptExecutor до получения `true`. Для переходного состояния иногда достаточно `interactive`, если тесту не нужны все ресурсы, но выбор должен соответствовать сценарию. После этого всё равно ожидается конкретный element или application state, потому что SPA может продолжать асинхронную работу.
+
+29. ожидание респонсов ajax запросов (JSExecutor)
+
+   **Ответ:** Универсального стандартного JavaScript-счётчика всех AJAX/fetch requests на странице нет. `jQuery.active === 0` работает только в приложении с jQuery и не покрывает любой другой network API; собственный счётчик требует заранее инструментировать `fetch` и `XMLHttpRequest`. Надёжнее ждать конкретное изменение UI, известный application signal или нужный network event через WebDriver BiDi/CDP.

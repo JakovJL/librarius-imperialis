@@ -1,21 +1,8 @@
-# Loggers reporters и metrics
+# Loggers, reporters и metrics
 
 ## Содержание
 
 - [[#Вопросы и ответы]]
-	- [[#Чем отличаются logs, reports и metrics?]]
-	- [[#Что должен содержать test status report?]]
-	- [[#Какие evidence нужно прикладывать к failed test?]]
-	- [[#Чем отличаются Allure, ReportPortal и framework reports?]]
-	- [[#Как читать Allure report?]]
-	- [[#Какие test execution metrics полезны?]]
-	- [[#Что означают coverage и test-case progress?]]
-	- [[#Какие defect metrics полезны?]]
-	- [[#Как отчитываться о smoke или regression run?]]
-	- [[#Как CI должна генерировать, публиковать и хранить reports?]]
-	- [[#Как сообщать quality status и release risk?]]
-	- [[#Что включает Senior-level reporting governance?]]
-- [[#Ссылки на теорию]]
 
 **Связанные заметки:** [[00 Индекс Skills Matrix AQA]]
 
@@ -23,80 +10,82 @@
 
 ## Вопросы и ответы
 
-### Чем отличаются logs, reports и metrics?
+1. формировать и прикладывать простые html-отчёты к результатам тестирования
 
-**Ответ:**
+   **Ответ:** Test runner или reporting adapter сначала создаёт machine-readable results, затем отдельный шаг генерирует HTML report. В CI я сохраняю report как artifact и публикую прямую ссылку вместе со статусом job. Даже при падении tests генерация и загрузка отчёта должны выполняться, а secrets в logs и attachments маскируются.
 
-Logs — chronological technical records для диагностики execution: time, event, level, context и error details. Report суммирует один test run для читателя: scope, results, evidence и risk. Metric — определённое number или trend для решения. Log не является report, а одна metric не доказывает готовность release. Нельзя записывать passwords, tokens, personal data или другие secrets в logs и report attachments.
+2. понимать структуру отчёта в Allure или других популярных фреймворках
 
-### Что должен содержать test status report?
+   **Ответ:** Allure показывает suites или behavior hierarchy, test status, steps, fixtures, duration, parameters, labels, links и attachments. Отдельные views дают categories, timeline, environment и history/trends, если история настроена. Хороший отчёт позволяет перейти от общей статистики к конкретному failed step, stack trace, screenshot и request/response.
 
-**Ответ:**
+3. оформлять отчёт о баге и статусе тестирования для команды и заказчика
 
-Полезный report указывает purpose и scope, application build и environment, dates, executed/passed/failed/blocked/not-run counts, linked defects, evidence и remaining risks. Также он говорит, что не тестировалось, и даёт понятную recommendation, например «готово к limited release» или «заблокировано defect в payment». Уровень detail зависит от читателя: engineer нужен failing stack trace, а customer — impact и risk.
+   **Ответ:** Баг-репорт содержит краткий заголовок, environment, steps, expected/actual result, evidence, Severity и связи с requirement или build. Статус тестирования показывает scope, выполненные и невыполненные проверки, открытые defects, blockers и residual risks. Команде нужны технические детали, а заказчику — влияние на business и решение, которое требуется.
 
-### Какие evidence нужно прикладывать к failed test?
+4. использовать базовые метрики: количество багов, прогресс по тест-кейсам
 
-**Ответ:**
+   **Ответ:** Я показываю defects по status, Severity, component и времени, а progress — как executed относительно planned scope с passed, failed, blocked и not run. Простое количество багов нельзя трактовать как качество продукта без размера scope, стадии тестирования и риска. Метрика должна сопровождаться trend и объяснением причин изменения.
 
-Нужно прикладывать только evidence, помогающие воспроизвести или диагностировать failure: screenshot для видимого UI state, video, если важна sequence, browser или device logs, request и response details с redacted secrets, а также test parameters и environment. При наличии добавляется link на CI job и defect. Не нужно прикладывать large files по умолчанию или скрывать actual error под множеством unstructured logs.
+5. передавать информацию о статусе QA в командном чате/стендапе
 
-### Чем отличаются Allure, ReportPortal и framework reports?
+   **Ответ:** Сообщение должно быть коротким: что проверено, текущий результат, blockers или critical defects, следующий шаг и какая помощь нужна. Например: «Smoke build 152: 38/40 passed, 1 failed из-за BUG-123, 1 blocked окружением; release risk — оплата». Ссылка на dashboard или report даёт детали без длинного пересказа.
 
-**Ответ:**
+6. настраивать и интерпретировать отчёты в Allure, ReportPortal, JUnit reporter
 
-JUnit и TestNG integrations обычно создают machine-readable result files и basic suite reports для CI. Allure превращает test results в interactive HTML report со steps, attachments, categories, environment, history и trends. ReportPortal — TestOps service для central, real-time result analysis, dashboards и collaborative failure triage. Следует выбирать smallest tool, который даёт команде нужные history, evidence, access control и CI integration.
+   **Ответ:** JUnit-compatible XML удобен как стандартный input для CI, Allure превращает results в интерактивный HTML с steps, attachments и history, а ReportPortal принимает execution events и поддерживает launches, defect classification, filters и dashboards. Настройка включает adapter/listener, metadata, artifacts и retention. При интерпретации failed tests сначала классифицируются как product defect, automation defect или infrastructure issue.
 
-### Как читать Allure report?
+7. анализировать и доносить результаты тестирования до заказчика через метрики
 
-**Ответ:**
+   **Ответ:** Я выбираю несколько показателей, связанных с решением: coverage критичных требований, pass rate стабильного scope, Severity открытых defects, blockers и trend. Затем объясняю влияние на release goals и residual risk, а не только показываю проценты. Любое число сопровождается периодом, denominator и источником данных.
 
-Начать нужно с build, environment и suite scope. Затем открыть failed tests и прочитать steps, assertion difference, exception и attachments. Categories группируют похожие failures, например product defects или infrastructure errors. History и retries помогают найти unstable test, но retry не отменяет original failure. Results можно сравнивать, только если environments и selected tests сопоставимы.
+8. описывать статус тестирования с использованием цифр: pass/fail rate, coverage, blockers
 
-### Какие test execution metrics полезны?
+   **Ответ:** Пример: «Выполнено 180 из 200 planned tests; 165 passed, 10 failed, 5 blocked, 20 not run. Критичные requirements покрыты на 95%, остаются два blockers в payment flow». Pass rate нужно считать по явно указанному denominator и не скрывать blocked или not run cases.
 
-**Ответ:**
+9. создавать сводки по результатам регрессий, smoke/regression runs
 
-Полезные run metrics: passed, failed, blocked, skipped или not-run, duration, retry count и flaky-test rate. Pass rate должна указывать denominator; например, `passed / executed`, где executed — passed плюс failed. Blocked test не является passed test, а skipped test может скрывать gap в coverage. Critical-flow results нужно отслеживать отдельно от total, чтобы большое число low-risk passes не скрыло failed payment или login flow.
+   **Ответ:** Сводка содержит build и environment, время запуска, scope, сравнение с прошлым run, статусы tests, новые defects, известные failures и recommendation. Для Smoke акцент — доступность критичных функций и возможность продолжать testing, для Regression testing — влияние изменений и residual risk. Flaky retries показываются отдельно от окончательного passed status.
 
-### Что означают coverage и test-case progress?
+10. участвовать в обсуждении с заказчиком, защищать приоритеты и статус качества
 
-**Ответ:**
+   **Ответ:** Я связываю priority с business impact, probability, affected users и стоимостью позднего исправления. Если заказчик принимает риск, решение фиксируется вместе с ограничениями и mitigation. «Все тесты пройдены» не является достаточным аргументом, если critical scope не покрыт или environment отличается от production.
 
-Test-case progress показывает, сколько planned cases designed, ready, executed и completed. Requirement coverage показывает, для каких agreed requirements или risks есть suitable tests. Code coverage показывает, какой code выполнялся, и не равен test quality или requirement coverage. Хороший coverage report называет scope и gaps, например: «все high-risk checkout requirements покрыты; refund при partial payment не покрыт».
+11. конфигурировать CI для генерации тест-отчётов
 
-### Какие defect metrics полезны?
+   **Ответ:** Pipeline запускает tests, сохраняет raw results, генерирует report и публикует его независимо от test exit status. Build metadata, branch, commit, environment и ссылки на job передаются в report. Artifacts имеют retention policy, а шаг публикации не должен превращать failed tests в successful pipeline.
 
-**Ответ:**
+12. выстраивать прозрачную модель отчётности для заказчика и внутренних команд
 
-Полезные defect metrics: total open defects, severity distribution, trend во времени, defect density и escaped defects, найденные после release. Defect density требует agreed size denominator, например story points или function points, и полезна только при одинаковом definition во времени. Escaped defect показывает, что release process или test strategy пропустили problem; это сигнал для обучения, а не automatic measure performance одного человека.
+   **Ответ:** Сначала определяются аудитории, решения и единый источник данных, затем для каждой роли выбирается подходящая детализация. Definitions метрик, filters, refresh frequency и ownership фиксируются, а dashboard позволяет перейти к исходным tests и defects. Ручные презентации не должны противоречить автоматически собранной статистике.
 
-### Как отчитываться о smoke или regression run?
+13. разрабатывать шаблоны QA-репортов под проектные требования
 
-**Ответ:**
+   **Ответ:** Шаблон включает period/build, scope, environment, results, coverage, defects, blockers, risks, deviations и recommendation. Поля адаптируются под release model, regulation и аудиторию, но definitions остаются едиными. После нескольких циклов я удаляю поля, которые никто не использует, и автоматизирую повторяемые данные.
 
-Нужно указать build и environment, выбранный smoke или regression scope, counts по results, critical failures, blockers, linked defects и remaining risk. Smoke report отвечает, достаточно ли build стабилен для deeper testing. Regression report также выделяет changed areas, ранее passed tests, которые теперь failed, flaky results и comparison с previous run. В team chat или на stand-up отправляется краткий factual status со ссылкой на full report.
+14. использовать и интерпретировать продвинутые отчётные платформы (Allure TestOps, ReportPortal)
 
-### Как CI должна генерировать, публиковать и хранить reports?
+   **Ответ:** Allure TestOps объединяет test cases, launches, automation results и analytics, а ReportPortal фокусируется на централизованном приёме results, defect triage, auto-analysis и dashboards. Я использую filters, attributes, history и widgets для поиска стабильных trends, а не только последнего run. Платформа помогает классификации, но итог product risk оценивает команда.
 
-**Ответ:**
+15. организовывать инфраструктуру для code coverage, выбирать и внедрять соответствующие инструменты
 
-CI job должна собирать results и artifacts даже после test failure, затем публиковать HTML report и machine-readable JUnit/TestNG results. Artifacts получают build identifier и хранятся agreed period. Long-term history можно хранить в reporting platform, object storage или database, только если команде нужен trend analysis. Перед upload нужно ограничить access и скрыть secrets. Successful upload не означает, что tests passed.
+   **Ответ:** Инструмент выбирается по language и уровню, например JaCoCo для Java bytecode coverage, Istanbul для JavaScript или coverage.py для Python. Pipeline собирает coverage на релевантных tests, объединяет reports и применяет quality gate к изменённому или согласованному code scope. Высокий coverage не доказывает качество assertions, поэтому он используется для поиска пробелов, а не как единственная цель.
 
-### Как сообщать quality status и release risk?
+16. настраивать генерацию и хранение отчётов в CI/CD-инфраструктуре и сравнивать с альтернативой через БД
 
-**Ответ:**
+   **Ответ:** CI artifacts просты, неизменяемы и естественно связаны с конкретным build, но cross-run queries и длинные trends ограничены retention. База данных или reporting platform поддерживает поиск, dashboards и историю, но требует schema, backup, access control, migration и обслуживания. Часто raw report хранится как artifact, а нормализованные metrics отправляются в специализированное хранилище.
 
-Test Summary Report или dashboard должен отвечать: что тестировалось, что passed или failed, какие evidence есть, какой risk остаётся и какое решение рекомендуется. Impact нужно объяснять product language: «checkout заблокирован для guest users», а не только «три tests failed». При наличии включаются agreed SLA или release criteria, но uncertainty нужно называть честно. QA предоставляет evidence и recommendation; release decision принимают agreed decision-makers.
+17. переопределять методы и визуальные компоненты популярных репортов (Allure, ReportPortal)
 
-### Что включает Senior-level reporting governance?
+   **Ответ:** Сначала я использую официальные adapters, labels, categories, plugins, widgets и API. Custom listener может изменить mapping test results, а plugin или UI extension — добавить представление, если платформа это поддерживает. Прямое изменение generated HTML или внутренних classes хрупко при upgrade, поэтому customization версионируется и покрывается проверками совместимости.
 
-**Ответ:**
+18. внедрять ключевые метрики качества: defect density, escaped defects, trend analysis
 
-Senior QA определяет report templates, metric formulas, owners, data sources, retention, access rules и common failure taxonomy. Он выбирает и поддерживает coverage и reporting tools, настраивает CI/CD publication и создаёт useful dashboard widgets или integrations, когда built-in view недостаточно. Он обучает команду consistent evidence и metric definitions, обсуждает trends со stakeholders и удаляет vanity metrics, которые не меняют решение.
+   **Ответ:** Defect density — число подтверждённых defects относительно согласованной единицы размера, например function points или KLOC; denominator и период должны быть стабильны. Escaped defects — проблемы, найденные после целевой стадии или release, с анализом Severity и причины пропуска. Trend analysis сравнивает одинаково определённые показатели во времени и помогает оценить эффект изменений процесса.
 
----
+19. обучать команду стандартам отчётности и контролировать их соблюдение
 
-## Ссылки на теорию
+   **Ответ:** Я документирую definitions, обязательные поля, примеры и источник каждой метрики, затем провожу короткое обучение на реальном report. Автоматическая validation проверяет заполнение metadata, а регулярный review — полезность и правильную интерпретацию. Контроль нужен для сопоставимости данных, а не для наказания за неудобные показатели.
 
-- [[21 Логирование отчёты и метрики]]
+20. доносить статус качества и технические риски до заказчика на уровне метрик, SLA и релизных отчётов
+
+   **Ответ:** Release report связывает test scope, defects, performance и reliability indicators с SLA/SLO и business-critical flows. Я показываю текущее значение, target, trend, confidence и конкретный residual risk, затем формулирую варианты: release, mitigation, ограничение scope или перенос. Метрики поддерживают решение, но не заменяют ответственность за принятие риска.

@@ -2,93 +2,86 @@
 
 ## Содержание
 
-- [[#Область матрицы]]
 - [[#Вопросы и ответы]]
-	- [[#Зачем нужны Package и Build Tools?]]
-	- [[#Как работает Maven?]]
-	- [[#Чем Gradle отличается от Maven?]]
-- [[#Как npm и Yarn управляют JavaScript-проектом?]]
-- [[#Как управлять dependencies и versions?]]
-- [[#Что такое lock files и нужно ли их коммитить?]]
-	- [[#Как работают repositories и параметры build?]]
-- [[#Ссылки на теорию]]
 
 **Связанные заметки:** [[00 Индекс Skills Matrix AQA]]
 
 ---
 
-## Область матрицы
-
-Эта заметка покрывает:
-
-- Назначение package и build tools: Maven, Gradle, Ant, npm, Yarn, pip, NuGet и Poetry.
-- Dependencies, repositories, lifecycle tasks, configuration, versions и lock files.
-- Сторонние repositories и параметризация build.
-
----
-
 ## Вопросы и ответы
 
-### Зачем нужны Package и Build Tools?
+1. Зачем они нужны?
 
-**Короткий ответ:**
+   **Ответ:** Package Manager автоматизирует поиск, установку, обновление и удаление зависимостей проекта. Он разрешает транзитивные зависимости, контролирует версии и помогает одинаково воспроизводить сборку локально и в CI. Многие инструменты также запускают scripts или участвуют в полном build lifecycle.
 
-Они загружают и управляют dependencies, разрешают versions, компилируют код, запускают тесты, создают artifacts и дают повторяемые команды для локальной работы и CI. Примеры: Maven и Gradle для Java, npm или Yarn для JavaScript, pip или Poetry для Python и NuGet для .NET.
+2. Какие слышал?
 
-### Как работает Maven?
+   **Ответ:** Для JavaScript распространены npm, Yarn и pnpm, для Python — pip и Poetry, для Java — Maven и Gradle, для .NET — NuGet. Также существуют Composer для PHP, Cargo для Rust и Bundler для Ruby. Ant относится прежде всего к build tools и обычно получает библиотеки через дополнительные механизмы, например Apache Ivy.
 
-**Короткий ответ:**
+3. JS:
 
-Maven использует `pom.xml` для project coordinates, properties, dependencies, plugins, repositories и build settings. У Maven есть три встроенных lifecycle: `default`, `clean` и `site`. `clean` является phase lifecycle `clean`, а `compile`, `test`, `package`, `verify` и `install` — phases lifecycle `default`. При контролируемых inputs команды должны давать одинаковый результат локально и в CI.
+   **Ответ:** В JavaScript package manager устанавливает зависимости из registry, читает manifest проекта и создаёт lock file. Чаще всего используются npm, Yarn или pnpm, а основной manifest — `package.json`. Выбранный инструмент и его lock file должны быть едиными для команды и CI.
 
-### Чем Gradle отличается от Maven?
+4. Как установить библиотеку?
 
-**Короткий ответ:**
+   **Ответ:** Сначала нужно перейти в корень проекта и использовать команду выбранного Package Manager, например `npm install <package>`, `pip install <package>` или добавить dependency в `pom.xml` для Maven. Версию лучше задавать осознанно, а после установки проверить изменения manifest и lock file. Команда и источник пакета зависят от языка и настроек проекта.
 
-Gradle использует программируемую build model с Groovy или Kotlin DSL и task graph. Он гибкий и поддерживает incremental build и caching. Maven сильнее основан на conventions и XML. Оба управляют Java dependencies и tests; проекту не нужна лишняя сложная build logic.
+5. npm
 
-### Как npm и Yarn управляют JavaScript-проектом?
+   **Ответ:** npm — стандартный Package Manager экосистемы Node.js и публичный registry пакетов. Он использует `package.json` для зависимостей и scripts, а `package-lock.json` — для фиксации точного дерева установленных версий. Для воспроизводимой установки в CI обычно применяется `npm ci`, который требует согласованного lock file.
 
-**Короткий ответ:**
+6. yarn
 
-`package.json` описывает JavaScript-проект: его имя, version, scripts, dependencies, development dependencies и configuration. Script запускается через `npm run <script>` или `yarn <script>`. Значение можно передать через environment variable, если проект его поддерживает: `BASE_URL=https://test.example npm run test`.
+   **Ответ:** Yarn — Package Manager для JavaScript, совместимый с npm registry и `package.json`. Он поддерживает lock file, workspaces и разные стратегии установки зависимостей; набор возможностей зависит от поколения Yarn и конфигурации проекта. Смешивать Yarn и npm в одном проекте без необходимости не стоит, потому что разные lock files могут описывать разные деревья зависимостей.
 
-**Dependencies:**
+7. pip
 
-- `dependencies` нужны при запуске приложения в production.
-- `devDependencies` используются для разработки, тестирования, linting или build.
-- `npm install <package>` добавляет runtime dependency, а `npm install -D <package>` — development dependency. У Yarn есть аналогичные команды.
-- При production installation можно не устанавливать development dependencies, например через `npm ci --omit=dev`.
+   **Ответ:** pip устанавливает Python packages из Python Package Index или другого настроенного источника. Зависимости обычно ставят в отдельное virtual environment, например командой `python -m pip install <package>`, чтобы не смешивать проекты и системный Python. Для воспроизводимости версии фиксируют в `requirements.txt`, lock file другого инструмента или принятом в проекте формате.
 
-### Как управлять dependencies и versions?
+8. maven
 
-**Короткий ответ:**
+   **Ответ:** Maven — Java build и dependency management tool с декларативным файлом `pom.xml` и стандартным lifecycle. Dependencies указываются через `groupId`, `artifactId`, `version` и scope, после чего Maven получает их из local или remote repositories. Команда `mvn test` запускает тестовую фазу, а `mvn verify` выполняет lifecycle до проверки пакета включительно.
 
-Dependency declaration содержит group, artifact, version и scope или configuration. Я контролирую versions, проверяю transitive dependencies и при необходимости использую dependency locking или Bill of Materials. SemVer использует `major.minor.patch`: major-изменение может нарушить совместимость, а minor и patch по правилам SemVer должны быть обратно совместимы.
+9. ant
 
-В npm диапазон `1.2.3` означает точную version, `^1.2.3` разрешает совместимые versions ниже `2.0.0`, `~1.2.3` — patch updates ниже `1.3.0`, а `*` разрешает любую version. При обычной воспроизводимой установке committed lock file имеет приоритет: package manager установит указанную в нём точную version, а не более новую version, разрешённую `^` или `~`.
+   **Ответ:** Apache Ant — Java build tool, в котором задачи и их зависимости описываются в `build.xml`. Он гибкий, но не задаёт стандартную структуру проекта и lifecycle так строго, как Maven. Управление внешними dependencies можно организовать вручную или через Apache Ivy, поэтому Ant сам по себе не является полноценным современным Package Manager.
 
-### Что такое lock files и нужно ли их коммитить?
+10. npm/yarn: {
 
-**Короткий ответ:**
+   **Ответ:** Для npm и Yarn общими ключевыми артефактами являются `package.json`, lock file, каталог установленных пакетов и команды запуска scripts. Оба инструмента работают с dependency ranges и registry, но имеют разные команды и отдельные особенности установки. В проекте важно следовать версии и настройкам Package Manager, зафиксированным командой.
 
-npm, Yarn и Poetry используют lock files для точных разрешённых versions. `package-lock.json` относится к npm, а `yarn.lock` — к Yarn. Для applications их обычно коммитят, чтобы локальная установка и CI были воспроизводимыми. Maven и Gradle используют другие механизмы dependency locking, а не `package-lock.json`.
+11. package.json:
 
-### Как работают repositories и параметры build?
+   **Ответ:** `package.json` — JSON manifest JavaScript-проекта. Он содержит метаданные, scripts, зависимости, требования к runtime и другие настройки инструментов. Файл нужно коммитить в репозиторий, потому что он описывает проект и необходим для установки и запуска.
 
-**Короткий ответ:**
+12. Из каких блоков состоит
 
-Dependencies могут приходить из public или private repositories: Maven Central, внутренний Nexus или Artifactory. Credentials хранятся в защищённых settings, а не в source files. Build parameters могут выбирать environment, tags, browser или feature flags, но значения нужно проверять и документировать defaults. Примеры: Maven `-Denv=test`, Gradle `-Penv=test` или environment variable npm.
+   **Ответ:** Основные поля `package.json` — `name`, `version`, `scripts`, `dependencies` и `devDependencies`. Дополнительно могут использоваться `type`, `main`, `exports`, `engines`, `peerDependencies`, `optionalDependencies`, `workspaces` и настройки отдельных инструментов. Не все поля обязательны: состав зависит от того, является проект приложением, библиотекой или monorepo.
 
-**Установка библиотеки:**
+13. Как запустить скрипт и как запустить с переменными
 
-- Java: dependency объявляется в `pom.xml` или `build.gradle`; Maven или Gradle получит её из настроенного repository.
-- JavaScript: используется `npm install <package>` или `yarn add <package>`.
-- Python: используется `pip install <package>`.
-- Ant: библиотека добавляется в classpath проекта, обычно через задачу dependency management или repository tool.
+   **Ответ:** Script из `package.json` запускается командой `npm run <name>` или `yarn <name>`; для стандартных npm scripts вроде `test` доступна короткая форма `npm test`. Аргументы самому script передаются после `--`, например `npm test -- --headed`. Environment variables можно задать средствами shell или CI, а для одинакового синтаксиса на Windows и Unix-like системах часто используют конфигурационный файл или `cross-env`.
 
----
+14. Разница между dependencies/devDependencies - как установить пакет в эти блоки и как НЕ устанавливать dev при деплое в прод
 
-## Ссылки на теорию
+   **Ответ:** `dependencies` нужны приложению во время выполнения, а `devDependencies` — только для разработки, сборки и тестирования. npm добавляет обычную dependency через `npm install <package>`, а dev dependency — через `npm install --save-dev <package>`; в Yarn используются `yarn add` и `yarn add --dev`. Для production npm может установить только runtime dependencies через `npm ci --omit=dev`; точную команду Yarn нужно выбирать по его версии и принятому deployment process.
 
-- [[15 Сборочные инструменты Maven Gradle]]
+15. Что за файл package-lock.json/yarn.lock и зачем нужен. Нужно ли коммитить lock файл в репозиторий?
+
+   **Ответ:** Lock file фиксирует точные версии прямых и транзитивных dependencies и данные, необходимые для воспроизводимой установки. `package-lock.json` создаёт npm, а `yarn.lock` — Yarn; обычно в проекте должен использоваться lock file выбранного инструмента. Для приложений его нужно коммитить, чтобы разработчики и CI получали одинаковое дерево пакетов; для публикуемых библиотек политика может учитывать особенности Package Manager, но lock file всё равно полезен для разработки и CI.
+
+16. Что такое SemVer? Что означают знаки в версиях(^ ~ * и просто строгое указание версии). Какая версия библиотеки установится при наличии lock файла и указании символа ^ в версии библиотеки
+
+   **Ответ:** SemVer использует формат `MAJOR.MINOR.PATCH`: MAJOR меняется при несовместимых изменениях, MINOR — при обратно совместимой функциональности, PATCH — при обратно совместимых исправлениях. Точная версия разрешает только её, `~` обычно допускает новые PATCH в пределах указанной MINOR, `^` — совместимые обновления без изменения крайней левой ненулевой части, а `*` задаёт очень широкий диапазон. Если согласованный lock file уже содержит версию, обычная воспроизводимая установка возьмёт зафиксированную версию, даже когда диапазон в `package.json` допускает более новую; версия изменится после явного обновления lock file.
+
+17. }
+
+   **Ответ:** Этот пункт закрывает блок вопросов про npm и Yarn. Ключевая мысль блока: `package.json` задаёт допустимые зависимости и scripts, а lock file фиксирует конкретное установленное дерево. При работе важно не редактировать lock file вручную и использовать один Package Manager во всех окружениях.
+
+18. использование сторонних репозиториев
+
+   **Ответ:** Package Manager можно настроить на private или сторонний repository, например внутренний npm registry, Maven repository или Python package index. URL и правила доступа задаются в конфигурации инструмента, а credentials передаются через защищённые переменные или secret storage. Нужно контролировать доверие к источнику и порядок разрешения пакетов, чтобы снизить риск dependency confusion.
+
+19. параметризация при установке пакетов
+
+   **Ответ:** При установке можно указать точную версию или диапазон, dev или production scope, registry, workspace и другие поддерживаемые flags. Например, `npm install --save-dev <package>@<version>` добавляет конкретную версию в devDependencies. Параметры следует фиксировать в manifest и lock file, а не полагаться на неповторяемую ручную команду.

@@ -2,78 +2,62 @@
 
 ## Содержание
 
-- [[#Область матрицы]]
 - [[#Вопросы и ответы]]
-	- [[#Что такое Locator и какие attributes лучше использовать?]]
-	- [[#Чем CSS отличается от XPath?]]
-	- [[#Как работают Relative XPath и axes?]]
-	- [[#Как задавать условия в CSS и XPath?]]
-	- [[#Что такое document.querySelector() и jQuery?]]
-	- [[#Как создавать Dynamic или Parameterised Locators?]]
-	- [[#Можно ли найти ::before, ::after или элементы Shadow DOM?]]
-- [[#Ссылки на теорию]]
 
 **Связанные заметки:** [[00 Индекс Skills Matrix AQA]]
 
 ---
 
-## Область матрицы
-
-Эта заметка покрывает:
-
-- CSS, XPath, `document.querySelector()` и jQuery.
-- Стабильные attributes, relative paths, axes, conditions и parameterised locators.
-- Pseudo-elements и Shadow DOM.
-
----
-
 ## Вопросы и ответы
 
-### Что такое Locator и какие attributes лучше использовать?
+1. разница css/path
 
-**Короткий ответ:**
+   **Ответ:** CSS selector использует синтаксис CSS, обычно получается короче и хорошо подходит для поиска по id, class и attributes. XPath умеет искать по тексту, использовать axes и двигаться как вниз, так и вверх по DOM tree. Я выбираю наиболее простой и стабильный локатор; универсального преимущества по скорости у XPath или CSS во всех браузерах нет.
 
-Locator идентифицирует элемент в DOM. Я предпочитаю уникальные стабильные attributes для тестирования, например `data-testid`, или стабильные семантические attributes: `id`, `name`, role и accessible name. Я избегаю indexes, generated classes и длинных paths, зависящих от layout.
+2. по каким атрибутом можно искать
 
-### Чем CSS отличается от XPath?
+   **Ответ:** Искать можно по любому доступному HTML attribute: `id`, `name`, `class`, `type`, `role`, `aria-*`, `data-*`, `href` и другим. Лучше предпочитать уникальные стабильные attributes, специально согласованные для автоматизации, например `data-testid`. Динамические id, CSS classes оформления и локализованный текст обычно делают локатор менее надёжным.
 
-**Короткий ответ:**
+3. найти элемент через css и xpath
 
-CSS selectors удобны для attributes, classes, hierarchy и pseudo-classes. XPath может перемещаться вниз и вверх по DOM и искать по тексту или сложным связям. Я выбираю самый простой стабильный selector; XPath сам по себе не хуже, но абсолютный XPath обычно хрупкий.
+   **Ответ:** Один и тот же элемент с атрибутом `data-testid="login"` можно найти CSS selector `[data-testid='login']` или XPath `//*[@data-testid='login']`. Если известно, что это кнопка, локатор лучше сузить до `button[data-testid='login']` или `//button[@data-testid='login']`. Перед использованием я проверяю уникальность и стабильность найденного элемента.
 
-### Как работают Relative XPath и axes?
+4. Дать задачу с :not в сss и not contains в xpath.
 
-**Короткий ответ:**
+   **Ответ:** Например, нужно найти все активные кнопки, у которых нет attribute `disabled`. CSS selector будет `button:not([disabled])`. XPath для кнопок, чей `class` не содержит строку `disabled`, будет `//button[not(contains(@class, 'disabled'))]`; при работе с class нужно учитывать отдельные tokens, чтобы случайно не совпало похожее имя.
 
-`//` ищет descendants от document context, `.//` — descendants текущего element, а `./` начинает путь от текущего element. Axes `parent`, `ancestor`, `following-sibling` и `preceding-sibling` помогают выражать связи, когда стабильных attributes нет.
+5. Зачем нужен локатор типа .// и ./?
 
-### Как задавать условия в CSS и XPath?
+   **Ответ:** Точка в XPath означает текущий context node. `./` начинает относительный путь от него, обычно к непосредственным children, а `.//` ищет среди его descendants. Это особенно важно при поиске внутри уже найденного WebElement: XPath с `//` может начать поиск от корня документа, а `.//` ограничивает его текущим элементом.
 
-**Короткий ответ:**
+6. Оси xpath.
 
-CSS поддерживает attribute selectors и pseudo-classes, например `:not()`. XPath поддерживает predicates, `contains()`, `not()` и boolean `and` или `or`. Я сохраняю условия читаемыми и проверяю уникальность в Developer Tools.
+   **Ответ:** XPath axes задают направление относительно текущего node. Часто используются `child`, `parent`, `ancestor`, `descendant`, `following-sibling`, `preceding-sibling`, `following`, `preceding`, `self` и `attribute`. Например, `//label[.='Email']/following-sibling::input` находит input рядом с указанным label, но такой локатор остаётся надёжным только при стабильной структуре DOM.
 
-### Что такое document.querySelector() и jQuery?
+7. document.querySelector() что такое и что умеет
 
-**Короткий ответ:**
+   **Ответ:** `document.querySelector(selector)` — browser DOM API, который возвращает первый Element, соответствующий CSS selector, или `null`, если совпадений нет. `document.querySelectorAll(selector)` возвращает статический `NodeList` всех совпадений. Эти методы не выполняют XPath и не ждут появления элемента автоматически.
 
-`document.querySelector()` — Browser DOM API, возвращающий первый element по CSS selector; `querySelectorAll()` возвращает static collection. jQuery — отдельная JavaScript library со своим selector и utility API. Selenium не требует jQuery, и библиотека может отсутствовать на странице.
+8. Что такое jQuery
 
-### Как создавать Dynamic или Parameterised Locators?
+   **Ответ:** jQuery — JavaScript library, которая упростила DOM traversal, обработку событий, AJAX и совместимость старых браузеров. Она использует CSS-подобные selectors и дополнительные helper methods. В современных приложениях многие её возможности доступны через стандартный DOM API, но jQuery всё ещё встречается в существующих проектах.
 
-**Короткий ответ:**
+9. xpath с условиями(ИЛИ и т.п.)
 
-Я храню locator template с контролируемым parameter и экранирую или проверяю значение. Нельзя небезопасно собирать selectors из произвольного текста. Parameterised locator должен оставаться читаемым, уникальным и находиться в соответствующем Page Object или component.
+   **Ответ:** В predicate XPath можно использовать `and`, `or` и `not()`, например `//input[@type='email' or @name='email']`. Оператор `|` объединяет результаты двух полных XPath expressions: `//button[@type='submit'] | //input[@type='submit']`. Скобки помогают явно задать порядок сложных условий и избежать неоднозначного локатора.
 
-### Можно ли найти ::before, ::after или элементы Shadow DOM?
+10. xpath вверх и вниз по дереву
 
-**Короткий ответ:**
+   **Ответ:** Вниз по DOM tree XPath идёт через `/` к непосредственному child или через `//` к descendants. Вверх можно подняться через `..`, `parent::` или `ancestor::`. Например, `//input[@name='email']/ancestor::form` найдёт содержащую форму, но чрезмерно длинные пути по структуре страницы хрупкие.
 
-`::before` и `::after` являются CSS-generated pseudo-elements, а не обычными DOM nodes, поэтому Selenium не возвращает их как WebElement; computed style можно прочитать через JavaScript. Для открытого Shadow DOM Selenium получает shadow root и ищет внутри него. Для closed shadow root нужна поддержка приложения или другой подход.
+11. Параметризированный составной локатор.
 
----
+   **Ответ:** Это шаблон локатора, в который во время выполнения подставляется значение, например id строки: `[data-row-id='%s'] button.edit`. Такой подход позволяет одному методу находить кнопку для разных записей и не дублировать selector. Подставляемое значение нужно корректно экранировать, а сам шаблон должен опираться на стабильные attributes, иначе специальные символы могут сломать selector.
 
-## Ссылки на теорию
+12. Поиск псевдо элементов ::before, ::after.
 
-- [[17 Основы Selenium WebDriver]]
+   **Ответ:** `::before` и `::after` не являются отдельными DOM elements, поэтому Selenium не может вернуть их как обычный WebElement. Можно найти основной элемент и через JavaScript получить вычисленное свойство, например `getComputedStyle(element, '::before').content`. Лучше проверять доступный пользователю результат или семантику, а не CSS-реализацию, если псевдоэлемент не влияет на требуемое поведение.
 
+13. Shadow root или shadow dom.
+
+   **Ответ:** Shadow DOM изолирует внутреннее DOM tree web component от основного документа. Обычный CSS или XPath selector не пересекает shadow boundary: сначала нужно найти host, получить его open `shadowRoot`, а затем искать внутри; в Selenium 4 для этого есть `getShadowRoot()`. Для вложенных компонентов переход повторяется на каждом уровне, а закрытый `closed` shadow root стандартным способом недоступен.

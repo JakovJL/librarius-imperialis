@@ -3,21 +3,6 @@
 ## Содержание
 
 - [[#Вопросы и ответы]]
-	- [[#Что такое Performance testing и на какие вопросы оно отвечает?]]
-	- [[#Чем отличаются Load, Stress, Spike, Soak, Volume, Capacity и Scalability testing?]]
-	- [[#Как определить baseline workload profile?]]
-	- [[#Как работают user scenarios, think time, delay и pacing?]]
-	- [[#Чем отличаются concurrency, parallelism и load steps?]]
-	- [[#Как рассчитать и смоделировать test load?]]
-	- [[#Чем отличаются response time, latency, throughput, RPS, TPS и error rate?]]
-	- [[#Почему percentiles важнее average?]]
-	- [[#Какие infrastructure metrics и profiler data нужно читать?]]
-	- [[#Как выбрать tool для Performance testing?]]
-	- [[#Как запустить JMeter в CLI mode и сгенерировать report?]]
-	- [[#Как понять, что bottleneck находится в load generator?]]
-	- [[#Как monitoring dashboards и CI/CD поддерживают Performance tests?]]
-	- [[#Как анализировать results и составлять Performance report?]]
-- [[#Ссылки на теорию]]
 
 **Связанные заметки:** [[00 Индекс Skills Matrix AQA]]
 
@@ -25,96 +10,186 @@
 
 ## Вопросы и ответы
 
-### Что такое Performance testing и на какие вопросы оно отвечает?
+1. Виды тестирования производительности:
 
-**Ответ:**
+   **Ответ:** Основные виды — Load testing, Stress testing, Soak testing, Spike testing, Volume testing, Capacity testing и Scalability testing. Они проверяют систему при нормальной, предельной, длительной, резкой или растущей нагрузке.
 
-Performance testing оценивает реакцию system на определённый workload. Его цели — найти risks response time, stability, capacity, scalability и resource use до того, как их обнаружат users. Оно отвечает на измеримый вопрос, например: «Может ли checkout сохранить P95 response time ниже двух секунд для 200 concurrent users при менее чем одном проценте business errors?» Это не просто «послать много requests и посмотреть, что будет».
+2. нагрузочное
 
-### Чем отличаются Load, Stress, Spike, Soak, Volume, Capacity и Scalability testing?
+   **Ответ:** Load testing проверяет работу системы под ожидаемой нагрузкой. Его цель — подтвердить требования к времени отклика, пропускной способности, числу ошибок и использованию ресурсов.
 
-**Ответ:**
+3. стрессовое
 
-Load testing проверяет ожидаемый или планируемый traffic. Stress testing увеличивает load выше ожидаемого limit, чтобы наблюдать failure и recovery. Spike testing проверяет sudden increase или decrease traffic. Soak testing запускает normal или high load на длительное время для поиска leaks, slow degradation или resource exhaustion. Volume testing использует large data sets. Capacity testing находит maximum supported workload по stated criteria. Scalability testing проверяет, как capacity меняется при добавлении или удалении resources. Для этих tests можно использовать один tool, но нужны разные workload и acceptance criteria.
+   **Ответ:** Stress testing повышает нагрузку выше ожидаемого предела. Оно помогает найти точку отказа, проверить поведение системы при перегрузке и убедиться, что после снятия нагрузки система восстанавливается.
 
-### Как определить baseline workload profile?
+4. длительное
 
-**Ответ:**
+   **Ответ:** Soak testing поддерживает рабочую нагрузку в течение долгого времени. Оно выявляет утечки памяти, накопление соединений, переполнение хранилищ и постепенное снижение производительности.
 
-Baseline строится по production traffic, analytics, business forecasts, seasonal peaks, non-functional requirements и known product changes. Нужно определить important user journeys, их business weight, arrival pattern, target devices или regions, data size и dependencies. Если production data нет, assumptions документируются и валидируются с product и operations. Скопированное значение «100 users» не является load profile.
+5. масштабируемость
 
-### Как работают user scenarios, think time, delay и pacing?
+   **Ответ:** Scalability testing проверяет, как производительность меняется при увеличении нагрузки и ресурсов. Например, сравнивают результат до и после добавления экземпляров приложения или мощности сервера.
 
-**Ответ:**
+6. Цели тестирования производительности
 
-User scenario — реалистичная sequence business actions, например browse → add to cart → pay. Think time — пауза, моделирующая время user на чтение или решение между actions. Delay может моделировать technical или business wait. Pacing контролирует, как часто virtual user начинает следующую iteration, поэтому предотвращает unrealistically fast loop. Values берутся из analytics или agreed assumptions; randomization допустима только в documented range. Нельзя добавлять sleep только для того, чтобы graph выглядел realistic.
+   **Ответ:** Цели — проверить нефункциональные требования, найти узкие места, определить предел системы, оценить стабильность и дать данные для планирования ресурсов. Критерии успеха задают до запуска теста.
 
-### Чем отличаются concurrency, parallelism и load steps?
+7. Инструменты тестирования производительности
 
-**Ответ:**
+   **Ответ:** Для генерации нагрузки используют Apache JMeter, k6, Gatling и Locust. Для наблюдения применяют Prometheus, Grafana, InfluxDB, Zabbix, APM-инструменты и системные профилировщики.
 
-Concurrency — количество active users, requests или transactions, пересекающихся во времени; нужно точно определить, что именно считает test. Parallelism — сколько tasks выполняются в один момент, например сколько workers load generator исполняет. Load step — controlled increase users или arrival rate с последующим steady period для наблюдения system. Ramp-up предотвращает случайный spike; results steps показывают место, где response time, errors или resources резко меняются.
+8. Метрики тестирования производительности:
 
-### Как рассчитать и смоделировать test load?
+   **Ответ:** Метрики делят на пользовательские и системные. К первым относятся response time, latency, throughput и error rate, ко вторым — CPU, память, диск, сеть, соединения и работа Garbage Collector.
 
-**Ответ:**
+9. время отклика
 
-Нужно начать с business rate, например orders per minute, затем сопоставить его user journeys и requests. Если journey создаёт три API requests, а users завершают её 100 раз в minute, expected request mix — не просто 300 identical requests: у каждого endpoint собственная share и timing. Моделируются warm-up, ramp-up, steady state, ramp-down, test data, caching и retries. До оценки application нужно подтвердить, что generator способен создать target rate.
+   **Ответ:** Response time — полное время от отправки запроса до получения ответа. Оно может включать сеть, очереди, обработку приложения, обращения к базе данных и передачу результата.
 
-### Чем отличаются response time, latency, throughput, RPS, TPS и error rate?
+10. latency
 
-**Ответ:**
+   **Ответ:** Latency — задержка до начала ответа или время прохождения операции без учёта некоторых дополнительных этапов. Значение зависит от инструмента, поэтому в отчёте нужно явно указать, как именно измеряется эта метрика.
 
-Response time — elapsed time от отправки request до получения complete response. Для latency нужно локальное definition: в зависимости от tool это network delay или time до first response byte, поэтому её нельзя автоматически считать response time или round-trip time. Throughput — completed work за unit времени. RPS считает HTTP requests per second; TPS считает defined business transactions per second. Error rate — failed requests или transactions, разделённые на выбранный total. Нужно указать denominator и то, что считается business error.
+11. throughput
 
-### Почему percentiles важнее average?
+   **Ответ:** Throughput — объём успешно обработанной работы за единицу времени: запросы, транзакции, сообщения или байты в секунду. Он показывает фактическую пропускную способность системы.
 
-**Ответ:**
+12. ошибки
 
-Average может скрыть группу slow users. P95 означает, что 95 процентов measured values меньше либо равны этому value; P99 показывает более медленный один процент. Service с average в одну секунду и P99 в десять секунд всё равно может давать unacceptable experience. Percentiles читаются вместе с sample count, error rate и time period. Сравнивать можно только одинаковые metric, endpoint, workload и environment с baseline или acceptance criterion.
+   **Ответ:** Ошибки оценивают по количеству и доле неуспешных операций. Важно анализировать HTTP-коды, тайм-ауты, сетевые сбои, ошибки проверок ответа и сообщения в логах сервера.
 
-### Какие infrastructure metrics и profiler data нужно читать?
+13. TPS (transactions per second)
 
-**Ответ:**
+   **Ответ:** TPS показывает число завершённых бизнес-транзакций в секунду. Одна транзакция может включать несколько запросов, например вход, создание заказа и оплату.
 
-Нужно сопоставлять test results с CPU, memory, disk I/O, network, database connections, queue depth и container либо VM limits. Для JVM или .NET services проверяются garbage-collection frequency, pause time, heap growth и allocation pressure. Profiler может показать CPU hot paths, allocations, locks и slow calls при controlled investigation; его обычно не подключают к каждому high-load production-like run, потому что он добавляет overhead. Перед объявлением bottleneck нужна корреляция по времени.
+14. RPS (requests per second)
 
-### Как выбрать tool для Performance testing?
+   **Ответ:** RPS — количество запросов, обработанных за секунду. RPS не равен числу пользователей: один пользователь может отправлять несколько запросов, а один бизнес-сценарий — состоять из многих запросов.
 
-**Ответ:**
+15. Анализ результатов и составление отчётов
 
-Выбор зависит от protocol support, scripting language, team skill, distributed execution, reporting, CI integration, cost и generator capacity. Apache JMeter — open-source tool с поддержкой многих protocols через samplers. Gatling использует code-based scenarios, k6 — JavaScript, а Locust — Python. LoadRunner — enterprise commercial product, BlazeMeter даёт hosted load-testing services. LoadUI Pro встречается в старых tool lists, поэтому перед выбором для нового project нужно проверить current vendor support. Tool не делает unrealistic workload валидным.
+   **Ответ:** Сначала проверяют корректность теста и стабильность генератора, затем сравнивают фактические метрики с критериями успеха. В отчёте указывают окружение, профиль нагрузки, результаты, графики, ошибки, узкие места, выводы и рекомендации.
 
-### Как запустить JMeter в CLI mode и сгенерировать report?
+16. Работа с профилировщиками (начальный уровень)
 
-**Ответ:**
+   **Ответ:** Профилировщик показывает, где приложение тратит CPU, память и время, какие методы вызываются чаще и где возникают блокировки. Во время нагрузочного теста QA сопоставляет эти данные со скачками response time и error rate.
 
-При необходимости test plan создаётся и debugging в GUI, но load test запускается в CLI mode. Нужно сохранить raw result file и сгенерировать HTML dashboard после run. Перед записью JMeter folder report должен быть empty или отсутствовать. Environment values нужно parameterize через properties, а не менять JMX file перед каждым run.
+17. Метрики тестирования производительности:
 
-```bash
-jmeter -n -t checkout.jmx -l results.jtl -e -o report
-```
+   **Ответ:** Набор метрик должен показывать и опыт пользователя, и состояние инфраструктуры. Метрики анализируют вместе, потому что одно среднее время ответа без percentiles, ошибок и ресурсов может скрыть проблему.
 
-### Как понять, что bottleneck находится в load generator?
+18. Response time (RTT, latency)
 
-**Ответ:**
+   **Ответ:** Response time — полное время операции, RTT — время прохождения запроса до узла и ответа обратно, а latency обычно означает задержку. Термины близки, но не всегда взаимозаменяемы, поэтому их определение фиксируют в Test Plan.
 
-Нужно мониторить CPU, memory, network, open connections и actual sent rate generator. Если generator saturated, он может отправить меньше planned load или добавить собственную latency, поэтому результат мало говорит о system under test. Нужны appropriately sized generators, меньше heavy listeners во время run и distributed load, когда это оправдано. До expensive full test полезно провести small calibration test против simple endpoint или service.
+19. Throughput (RPS, TPS)
 
-### Как monitoring dashboards и CI/CD поддерживают Performance tests?
+   **Ответ:** Throughput описывает объём работы за время. RPS измеряет отдельные запросы, TPS — завершённые бизнес-транзакции; выбор метрики зависит от цели теста.
 
-**Ответ:**
+20. Concurrency vs. parallelism
 
-Dashboards объединяют application и infrastructure telemetry с test metrics. Например, JMeter Backend Listener может отправлять metrics в time-series backend, такой как InfluxDB, для Grafana, а k6 — передавать metrics через Prometheus remote write в Grafana. Zabbix может мониторить hosts и infrastructure. CI stage должна запускать controlled repeatable smoke или baseline performance test, публиковать raw results и dashboards и падать только по agreed thresholds. Нельзя запускать uncontrolled destructive stress test на каждом commit.
+   **Ответ:** Concurrency означает, что несколько задач находятся в выполнении в один период и могут чередоваться. Parallelism означает их реальное одновременное выполнение на разных потоках, ядрах или узлах.
 
-### Как анализировать results и составлять Performance report?
+21. Error rate, percentiles (P90, P95, P99)
 
-**Ответ:**
+   **Ответ:** Error rate — доля ошибочных операций. P95 означает, что 95% измерений не превышают указанное время, а 5% медленнее; percentiles лучше среднего показывают медленный «хвост» распределения.
 
-Нужно указать goal, environment, application version, data, tool и generator capacity, scenario mix, load schedule, warm-up и acceptance criteria. Report содержит throughput, percentiles, errors, resource metrics, bottlenecks и comparison с baseline. Confirmed facts нужно отделять от hypotheses, а limits, anomalies и actions записывать. Полезный вывод конкретен: «При 150 RPS P95 checkout превысил criterion две секунды, когда database CPU достиг 95%; нужно исследовать payment-query plan».
+22. CPU, Memory, Disk, Network usage
 
----
+   **Ответ:** Эти метрики помогают связать ухудшение ответа с ресурсами. Проверяют загрузку CPU, использование и утечки памяти, операции и задержки диска, сетевой трафик, потери пакетов и ограничения пропускной способности.
 
-## Ссылки на теорию
+23. Garbage collection impact (для JVM, .NET)
 
-- [[17 Тестирование производительности]]
+   **Ответ:** Частые или долгие паузы Garbage Collector могут повышать latency и снижать throughput. Анализируют частоту и длительность сборок, объём освобождённой памяти, размер heap и связь GC-пауз со скачками времени ответа.
+
+24. Профиль нагрузки:
+
+   **Ответ:** Профиль нагрузки описывает, кто, какие операции, с какой частотой и в какой последовательности выполняет. Он также задаёт длительность, число виртуальных пользователей, рост и снижение нагрузки, think time и распределение сценариев.
+
+25. пользовательские сценарии
+
+   **Ответ:** Пользовательские сценарии моделируют реальные бизнес-действия, например поиск, просмотр товара и оформление заказа. Доли сценариев должны отражать реальный трафик, а проверки ответа — подтверждать успешность операций.
+
+26. динамическая нагрузка
+
+   **Ответ:** Динамическая нагрузка меняется во времени: растёт, падает или резко увеличивается. Она помогает проверить автоскейлинг, очереди, реакцию на пики и восстановление после них.
+
+27. паттерны нагрузки
+
+   **Ответ:** Частые паттерны — постоянная нагрузка, ramp-up, ramp-down, ступени, spike, волны и длительное плато. Паттерн выбирают по данным production и цели теста.
+
+28. think time и delay
+
+   **Ответ:** Think time имитирует паузу реального пользователя между действиями. Delay — техническая задержка, которую добавляют перед операцией или между итерациями; без таких пауз нагрузка может стать нереалистичной.
+
+29. Шаг нагрузки:
+
+   **Ответ:** Шаг нагрузки — заранее заданное увеличение интенсивности, например на 100 пользователей каждые пять минут. После каждого шага системе дают стабилизироваться и сравнивают метрики.
+
+30. поэтапное увеличение пользователей
+
+   **Ответ:** Число виртуальных пользователей повышают постепенно, чтобы увидеть момент начала деградации. Слишком быстрый рост может скрыть причину проблемы и создать искусственный пик.
+
+31. анализ точек перегруза
+
+   **Ответ:** Точка перегруза появляется, когда рост нагрузки перестаёт давать пропорциональный рост throughput, а response time, ошибки или очереди резко увеличиваются. Затем по системным метрикам и логам определяют ограничивающий компонент.
+
+32. построение графиков нагрузки по шагам
+
+   **Ответ:** На общей временной шкале показывают виртуальных пользователей или RPS, response time по percentiles, throughput, error rate и ресурсы. Так видно, на каком шаге началась деградация и что происходило в системе.
+
+33. Расчет нагрузки
+
+   **Ответ:** Нагрузку рассчитывают из production-аналитики и бизнес-прогноза. Упрощённо среднюю интенсивность можно получить как число операций за период, а concurrency — как интенсивность поступления операций, умноженную на среднее время их выполнения.
+
+34. Встроенные инструменты репортинга для генераторов нагрузки
+
+   **Ответ:** JMeter создаёт HTML Dashboard из JTL/CSV, k6 выводит итоговую сводку и поддерживает web dashboard и внешние outputs, Locust показывает web-статистику и экспортирует CSV. Для длительного хранения данные часто отправляют во внешнюю time-series базу.
+
+35. Способы определение базового профиля нагрузки:
+
+   **Ответ:** Базовый профиль получают из production-трафика, аналитики, бизнес-показателей и нефункциональных требований. Если production-данных нет, строят модель из ожидаемого числа пользователей и явно фиксируют допущения.
+
+36. анализ реального трафика
+
+   **Ответ:** Анализируют логи, APM и метрики gateway: RPS/TPS, пиковые часы, распределение endpoint, длительность сессий, think time и сезонность. Чувствительные данные при этом не переносят в тест без защиты.
+
+37. данные из аналитических систем
+
+   **Ответ:** Системы аналитики дают число активных пользователей, частоту действий, воронки и распределение сценариев. Эти данные переводят в доли сценариев и интенсивность запросов для модели нагрузки.
+
+38. бизнес-показатели
+
+   **Ответ:** Используют прогноз заказов, платежей, регистраций, событий или других бизнес-транзакций. Затем учитывают рост, сезонный пик и запас, после чего переводят показатели в TPS и RPS.
+
+39. нефункциональные требования
+
+   **Ответ:** Нефункциональные требования задают измеримые пределы: допустимый response time по percentile, throughput, error rate, число пользователей, доступность и восстановление. Формулировка «система должна быть быстрой» не является проверяемым требованием.
+
+40. JMeter CLI (запуск тестов, формирование отчетов)
+
+   **Ответ:** Для нагрузки JMeter запускают в CLI mode, например `jmeter -n -t test.jmx -l results.jtl -e -o report`. Флаги задают non-GUI запуск, Test Plan, файл результатов и генерацию HTML Dashboard.
+
+41. Встраивание НТ в CI/CD:
+
+   **Ответ:** Нагрузочный тест оформляют отдельным stage с подготовкой окружения, запуском, проверкой thresholds и сохранением отчётов. Короткий smoke performance test можно запускать часто, а тяжёлый тест — по расписанию или перед релизом.
+
+42. JMeter/k6/Locust как отдельный stage в CI
+
+   **Ответ:** Stage получает конфигурацию из параметров и секретов, запускает инструмент без UI, возвращает ненулевой код при нарушении thresholds и публикует результаты как artifacts. Нагрузочный генератор не должен конкурировать за ресурсы с тестируемой системой.
+
+43. Сбор результатов НТ и настройка дашбордов Zabbix + Graffana:
+
+   **Ответ:** Генератор отправляет тестовые метрики в хранилище, Grafana визуализирует их, а Zabbix собирает инфраструктурные метрики и события. Все данные синхронизируют по времени и помечают идентификатором запуска.
+
+44. JMeter Backend Listener + InfluxDB → Grafana
+
+   **Ответ:** Backend Listener отправляет метрики JMeter в InfluxDB во время теста, а Grafana читает их и строит dashboard. Настраивают URL, bucket или database, token, имена samplers, percentiles и уникальный тег запуска.
+
+45. k6 output → Prometheus → Grafana
+
+   **Ответ:** k6 может передавать временные ряды через Prometheus remote write, после чего Grafana строит графики по данным Prometheus. Нужно настроить endpoint, labels теста, хранение метрик и dashboard; статус конкретного output следует сверять с документацией версии k6.
+
+46. Zabbix agent
+
+   **Ответ:** Zabbix agent собирает метрики операционной системы и приложений на хосте и передаёт их Zabbix server или proxy. Во время теста через него наблюдают CPU, память, диск, сеть и пользовательские метрики, а затем сопоставляют их с нагрузкой.

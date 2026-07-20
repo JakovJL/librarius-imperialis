@@ -3,23 +3,6 @@
 ## Содержание
 
 - [[#Вопросы и ответы]]
-	- [[#Какие типы mobile applications существуют?]]
-	- [[#Какие tools для mobile automation выбирать?]]
-	- [[#Как работает Appium?]]
-	- [[#Какие programs и components нужны для local run?]]
-	- [[#Какие Appium capabilities запускают Android или iOS session?]]
-	- [[#Что такое Android package, Activity, UiAutomator2 и AppiumDriver?]]
-	- [[#Как работают mobile locators и чем ID отличается от Accessibility ID?]]
-	- [[#Как Appium project должен использовать Screen Objects и configuration?]]
-	- [[#Как запускать Appium и использовать Appium Inspector?]]
-	- [[#Что произошло с MobileElement в современном Appium Java Client?]]
-	- [[#Как работают XCUIApplication, launch, activate, launchArguments и launchEnvironment?]]
-	- [[#Что такое XCUIElement, XCUIElementQuery, XCTWaiter, XCTestExpectation и XCTAssert?]]
-	- [[#Как работают XCTest setup, teardown, XCUIDevice и XCTContext?]]
-	- [[#Как тестировать permissions, system alerts и notifications?]]
-	- [[#Как тестировать background, foreground, orientation, language, region и network conditions?]]
-	- [[#Как запускать mobile tests в CI, на Grid или Device Farm и parallel?]]
-- [[#Ссылки на теорию]]
 
 **Связанные заметки:** [[00 Индекс Skills Matrix AQA]]
 
@@ -27,114 +10,210 @@
 
 ## Вопросы и ответы
 
-### Какие типы mobile applications существуют?
+1. Android:
 
-**Ответ:**
+   **Ответ:** Android automation может выполняться на emulator или real device через native frameworks вроде UI Automator/Espresso либо через Appium driver UiAutomator2. Для подготовки нужны Android SDK, ADB, application package, device configuration и test runner. Выбор уровня зависит от риска: business logic лучше проверять ниже UI, а критичные flows — на устройствах.
 
-Native app использует platform UI controls и устанавливается на device. Hybrid app содержит native screens и web view; test может потребовать переключения между native и web contexts. Mobile-web app работает в browser на phone или tablet. Type application меняет tool, locators, test boundary и необходимость real device. Critical flows нужно тестировать и на real devices, и на emulators или simulators, потому что hardware, OS, network и permissions могут вести себя по-разному.
+2. Какие виды мобильных приложений бывают?(Android/iOS)
 
-### Какие tools для mobile automation выбирать?
+   **Ответ:** Native app создаётся для конкретной платформы и использует её UI/API, mobile web app работает в browser, hybrid app объединяет native shell и WebView. PWA является web application с возможностями установки и offline behavior, но не становится native app. Тип определяет automation context, доступные locators и способ сборки.
 
-**Ответ:**
+3. Что такое Appium?(Android/iOS)
 
-Appium — cross-platform tool на W3C WebDriver protocol, поэтому один client API может управлять Android и iOS через platform drivers. Espresso — Android-native option; Kaspresso добавляет higher-level Android test support поверх Espresso и UI Automator. XCUITest — native UI-test framework Apple. Detox часто используется для React Native applications. Tool выбирается по technology application, required platforms, team language, speed и device-farm support. Selendroid — legacy Android tool, TestProject достиг end of life в 2023 году, а Xamarin.UITest следует считать legacy для новых cloud-device projects, потому что Visual Studio App Center был retired в 2025 году.
+   **Ответ:** Appium — open-source automation ecosystem и WebDriver server для управления разными platforms через устанавливаемые drivers. Для Android обычно используется UiAutomator2 driver, для iOS — XCUITest driver, который взаимодействует с WebDriverAgent. Test code отправляет WebDriver commands, а Appium переводит их в platform-specific automation.
 
-### Как работает Appium?
+4. Локаторы в Appium (Android/iOS)
 
-**Ответ:**
+   **Ответ:** Общие strategies включают accessibility id, id, class name и XPath. Для Android доступны UiAutomator expressions, для iOS — predicate strings и class chains в зависимости от driver. Лучше выбирать стабильный accessibility identifier или resource id; длинный XPath по hierarchy медленнее и ломается при изменении layout.
 
-Appium client отправляет WebDriver commands на Appium server. Server выбирает installed driver, например UiAutomator2 для Android или XCUITest для iOS. Этот driver взаимодействует с platform automation services на device или simulator и возвращает result client. Session настраивается capabilities. Appium 2 и позднее устанавливают drivers отдельно от server, поэтому одной установки server недостаточно для automation device.
+5. В чем отличие id от Accessibility ID (Android/iOS)
 
-### Какие programs и components нужны для local run?
+   **Ответ:** `id` обычно обращается к Android resource-id или соответствующему platform identifier, связанному с implementation. Accessibility ID ищет значение, предназначенное accessibility tree: Android `content-desc`, а в iOS — accessibility identifier. Accessibility ID удобен cross-platform при согласованных значениях, но identifier не должен ухудшать реальные accessibility labels для пользователя.
 
-**Ответ:**
+6. Activity/Package(Android)
 
-Для Android нужны Android SDK, platform tools, emulator или connected real device и выбранный Appium Android driver. Android Studio удобно использовать для управления SDK и emulators. Для iOS нужны macOS, Xcode, simulator или configured real device и XCUITest driver. Также устанавливаются test-language client library, Appium server и нужный ему driver. Appium Inspector помогает находить elements, а Gradle, Maven, npm или другой test runner запускает suite. Exact setup зависит от platform: iOS automation нельзя полностью настроить на Windows.
+   **Ответ:** Package идентифицирует Android application, например `com.example.app`, а Activity представляет конкретный экран или entry component. В Appium capabilities `appPackage` и `appActivity` могут запускать уже установленное приложение. Точные значения получают из manifest, ADB или информации текущей foreground activity.
 
-### Какие Appium capabilities запускают Android или iOS session?
+7. Скоуп программ для запуска тестов(Android/iOS)
 
-**Ответ:**
+   **Ответ:** Для Android обычно нужны JDK, Android SDK/platform tools, ADB, emulator или device, Node.js, Appium server, UiAutomator2 driver, client library и build/test runner. Для iOS дополнительно нужны macOS, Xcode, Simulator или подписанное real device окружение и XCUITest driver. Appium Inspector помогает изучать hierarchy, но не заменяет server и test runner.
 
-Capabilities описывают session, которую должен создать Appium. Единого universal required list нет: каждый driver документирует собственные requirements. Common values: standard `platformName`, а также `appium:automationName`, `appium:deviceName`, platform version и один из вариантов: app path, package/activity, bundle ID или browser name. В W3C sessions Appium-specific capabilities используют prefix `appium:`. Нужно указывать только capabilities, нужные scenario, а device IDs, credentials и cloud options держать вне source code.
+8. iOS:
 
-```json
-{
-  "platformName": "Android",
-  "appium:automationName": "UiAutomator2",
-  "appium:deviceName": "Pixel_API_35",
-  "appium:appPackage": "com.example.shop",
-  "appium:appActivity": ".MainActivity"
-}
-```
+   **Ответ:** Native iOS automation строится на XCTest/XCUITest, а Appium XCUITest driver управляет WebDriverAgent поверх этих технологий. Для запуска нужны Xcode, simulator или real device, signing и provisioning при необходимости. Ограничения Apple platform и version compatibility нужно проверять до проектирования CI.
 
-### Что такое Android package, Activity, UiAutomator2 и AppiumDriver?
+9. XCUIApplication (start vs launch)
 
-**Ответ:**
+   **Ответ:** Создание `XCUIApplication` только описывает target application, а `launch()` запускает её как часть test. Стандартного метода `start()` у XCUIApplication нет; для уже запущенного приложения используется `activate()`, а для остановки — `terminate()`. Перед `launch()` задаются arguments и environment.
 
-Android package — unique identifier application, например `com.example.shop`. Activity — Android component, обычно представляющий одну user-facing screen; `appium:appActivity` сообщает Appium, какую entry activity нужно открыть, когда это необходимо. UiAutomator2 — maintained Appium driver для Android native, hybrid и web automation. В Java `AppiumDriver` — общий driver type; `AndroidDriver` или `IOSDriver` используются, когда code становится понятнее от platform-specific APIs. Нельзя hard-code production package или зависеть от одной Activity, если test configuration не владеет этим value.
+10. launchEnvironment, launchArguments
 
-### Как работают mobile locators и чем ID отличается от Accessibility ID?
+   **Ответ:** `launchArguments` передаёт application строки command line, а `launchEnvironment` — key-value environment variables. Их задают до `XCUIApplication.launch()` и используют для test mode, mock endpoints, locale или feature flags. Production behavior не должно случайно зависеть от небезопасного test-only flag.
 
-**Ответ:**
+11. XCUIElement
 
-Лучше использовать stable accessibility identifier, предоставленный application team. Appium Accessibility ID strategy использует platform accessibility property: на Android это обычно `content-desc`, а на iOS — accessibility identifier. Android `resource-id` — отдельный Android resource identifier, который находится ID strategy. Другие варианты: class name, Android UI Automator, iOS predicate или class chain и XPath. XPath обычно выбирают последним: large mobile hierarchy делает его slow и fragile. Нельзя считать visible text stable locator, если application локализуется.
+   **Ответ:** XCUIElement представляет UI element из accessibility hierarchy и позволяет tap, type, swipe и читать properties. Ссылка является proxy: наличие проверяется через `exists` или ожидание, а не гарантируется при создании query. Надёжность зависит от accessibility identifiers и корректной synchronization.
 
-### Как Appium project должен использовать Screen Objects и configuration?
+12. XCUIElementQuery
 
-**Ответ:**
+   **Ответ:** XCUIElementQuery лениво описывает поиск элементов по type, identifier, predicate и relationships. Query можно уточнять через matching и descendants, затем получить конкретный element или проверить count. Слишком широкий query и index-based выбор делают test хрупким.
 
-Screen Objects — mobile equivalent Page Objects: они хранят locators и screen actions вне test scenarios. Test описывает behaviour и assertions, а Screen Object — interaction с одной screen или reusable component. Capabilities, base URL, timeouts, device selection и environment values хранятся в versioned non-secret configuration и безопасно переопределяются CI. Appium server configuration отделена от test capabilities. Current Appium поддерживает JSON, YAML и CommonJS configuration files; `.appiumrc.yaml` и `appium.config.js` — recognised names, а custom file можно передать явно.
+13. XCTWaiter
 
-### Как запускать Appium и использовать Appium Inspector?
+   **Ответ:** XCTWaiter ожидает одну или несколько XCTestExpectation до timeout и возвращает детальный result, например completed или timedOut. Он полезен, когда нужно управлять порядком или не завершать test автоматически так, как это делает обычный wait API. UI element часто проще ждать через `waitForExistence(timeout:)`.
 
-**Ответ:**
+14. XCTestExpectations
 
-Нужно установить server, затем required driver и запустить server через `appium` или `appium server`. Например, Android driver устанавливается command `appium driver install uiautomator2`. Appium Inspector создаёт session с выбранными capabilities и показывает screen hierarchy, attributes, screenshot и available commands. Он помогает понять application и проверить locator, после чего stable locator переносится в Screen Object. Это development tool, а не замена automated assertions.
+   **Ответ:** XCTestExpectation представляет асинхронное событие, которое test должен дождаться, например callback или notification. Test создаёт expectation, код вызывает `fulfill()`, затем framework ждёт её с ограниченным timeout. Over-fulfill, неправильный count и отсутствие timeout превращают асинхронный test в нестабильный.
 
-### Что произошло с MobileElement в современном Appium Java Client?
+15. XCTAssert
 
-**Ответ:**
+   **Ответ:** XCTest предоставляет assertions вроде `XCTAssertTrue`, `XCTAssertEqual`, `XCTAssertNil` и `XCTFail`. Assertion должен сравнивать наблюдаемый результат с ожидаемым и иметь полезное сообщение. Несколько независимых причин падения лучше не смешивать в одном длинном scenario.
 
-В старых Java examples Appium используется `MobileElement`. Этот class был удалён из Appium Java Client 8, поэтому новый code обычно использует Selenium `WebElement` вместе с `AndroidDriver`, `IOSDriver` или `AppiumDriver`. Driver всё ещё предоставляет mobile-specific commands; изменился element type для соответствия W3C WebDriver model. При чтении старых examples нужно проверить versions Appium Java Client и Selenium, прежде чем копировать imports или APIs.
+16. setUp(), tearDown() , AddTearDownBlock()
 
-### Как работают XCUIApplication, launch, activate, launchArguments и launchEnvironment?
+   **Ответ:** `setUp()` подготавливает состояние перед каждым test method, `tearDown()` очищает его после выполнения. `addTeardownBlock` регистрирует дополнительную cleanup operation во время test и удобно закрывает resource рядом с местом создания. Cleanup должен выполняться и после assertion failure, а общие mutable fixtures ухудшают parallelism.
 
-**Ответ:**
+17. accessibility labels, identifiers
 
-`XCUIApplication` представляет iOS application under test. `launch()` запускает его; standard `start()` API XCTest для этого не использует. `activate()` выводит уже running app на foreground, а `terminate()` завершает его. До `launch()` задаются `launchArguments` и `launchEnvironment`, чтобы передать flags и environment values, например test server URL или feature flag. Эти values должны быть test-specific; production secrets нельзя передавать launch arguments.
+   **Ответ:** Accessibility label — текстовое описание, которое слышит пользователь assistive technology, поэтому оно может локализоваться. Accessibility identifier предназначен для программной идентификации элемента и обычно не показывается пользователю. Для automation лучше стабильный identifier, а label тестируется отдельно как часть accessibility.
 
-### Что такое XCUIElement, XCUIElementQuery, XCTWaiter, XCTestExpectation и XCTAssert?
+18. XCUIDevice
 
-**Ответ:**
+   **Ответ:** XCUIDevice представляет устройство и поддерживает операции вроде изменения orientation и нажатия hardware buttons, доступных automation API. Его используют для device-level interaction, а не поиска elements приложения. Некоторые системные возможности различаются между Simulator и real device.
 
-`XCUIElement` представляет один UI element. `XCUIElementQuery` описывает поиск elements, например всех buttons или button с identifier. `XCTestExpectation` описывает asynchronous condition, а `XCTWaiter` ждёт его с timeout. Методы `XCTAssert…` проверяют expected result, например existence element или correct text. Нельзя использовать fixed sleep, если element, notification или network-driven state имеет meaningful condition для ожидания.
+19. Структура проекта и запуск (Appium):
 
-### Как работают XCTest setup, teardown, XCUIDevice и XCTContext?
+   **Ответ:** Проект обычно разделяет tests, Screen Objects, components, driver factory, configuration, data и reporting. Appium server и platform driver запускаются отдельно или управляются infrastructure code, а test runner создаёт session по capabilities. Локальный и remote запуск используют один test API, меняя endpoint и configuration.
 
-**Ответ:**
+20. структура Appium-проекта (Page Object или Screen Object)
 
-`setUp()` готовит только resources, нужные каждому test, а `tearDown()` освобождает shared resources. `addTeardownBlock()` регистрирует test-specific cleanup и выполняет его после test method, до case teardown methods. `XCUIDevice` представляет current device и может управлять supported device actions, например orientation. `XCTContext.runActivity` создаёт named activities в test report и полезен для grouping meaningful action и attachments. Cleanup также должен удалить test accounts, files и changed state, где это требуется.
+   **Ответ:** Для mobile чаще говорят Screen Object: class описывает экран через locators, actions и состояние. Повторяемые widgets выносятся в Component Objects, а platform-specific locators можно скрыть за общим interface только при одинаковом поведении. Test должен выражать business flow, а не напрямую вызывать driver в каждой строке.
 
-### Как тестировать permissions, system alerts и notifications?
+21. как запускать Appium локально (через UI и CLI)
 
-**Ответ:**
+   **Ответ:** Актуальный Appium server устанавливается и запускается CLI-командой `appium`, а drivers отдельно устанавливаются через `appium driver install`. UI-инструмент Appium Inspector подключается к уже доступному server и создаёт session для исследования. Старые Appium Desktop distributions могут не соответствовать современным server/drivers, поэтому версии нужно проверять.
 
-Нужно тестировать paths с разрешёнными и отклонёнными permissions при known initial permission state. Expected alert, являющийся частью flow, нужно найти и обработать напрямую. В XCUITest interruption monitor предназначен для unrelated UI, блокирующего текущее interaction; это не normal way тестировать expected alert. Для notifications используются test accounts, controllable push providers или app test hooks, чтобы test не зависел от real external notification в неизвестный момент. Между tests нужно reset permissions и app data, если этого требует scenario.
+22. запуск тестов через Appium Inspector
 
-### Как тестировать background, foreground, orientation, language, region и network conditions?
+   **Ответ:** Appium Inspector не является полноценным test runner: он создаёт Appium session, показывает source hierarchy, позволяет выполнять отдельные actions и подбирать locators. Из него можно получить code snippets, после чего test запускается через JUnit, TestNG, pytest или другой runner. Inspector полезен для диагностики, но не подтверждает стабильность полного scenario.
 
-**Ответ:**
+23. конфигурация appium.conf.js или .yaml
 
-Нужно проверить application state до и после перевода в background и foreground. Старый command `runAppInBackground` deprecated; вместо него применяются current driver-supported lifecycle commands: query state, terminate и activate, когда это подходит. Orientation меняется supported platform или driver API, после чего проверяются layout и state. Language и region задаются через supported simulator, emulator или session configuration; locators не должны зависеть от translated text. Network conditions контролируются emulator tools, proxy или test environment: нельзя считать, что каждый real device или farm поддерживает одинаковое network toggle.
+   **Ответ:** Appium server поддерживает JSON, YAML, JS и CJS configuration; автоматически обнаруживаются имена вроде `.appiumrc.yaml` и `appium.config.js`. В файле задаются server options и driver/plugin configuration, а CLI values имеют приоритет. Session capabilities обычно остаются в test configuration или provider setup, а secrets не помещаются в общий файл.
 
-### Как запускать mobile tests в CI, на Grid или Device Farm и parallel?
+24. Android:
 
-**Ответ:**
+   **Ответ:** Для Android Appium session выбирает installed driver, обычно UiAutomator2, device по UDID/deviceName и application через app path либо package/activity. ADB обеспечивает связь с device, установку и сбор logs. В parallel run каждому device нужны уникальные server-side ports и независимые данные.
 
-Нужно parameterize platform, OS version, device, app build, locale и test tags. CI должна публиковать JUnit/TestNG или Allure results, а также screenshots, device logs, Appium logs и video, если provider его даёт. Appium Grid или Device Farm предоставляет remote devices; capability format, authentication и supported features нужно проверять у конкретного provider. Parallel sessions требуют отдельных devices, Appium ports, app data, accounts, files и report names. Начинать следует с small stable smoke suite, а затем добавлять carefully selected regression tests, а не запускать все cases на каждой device combination.
+25. Обязательные capability(Android/iOS)
 
----
+   **Ответ:** Минимальный набор зависит от Appium driver и provider, но обычно включает W3C `platformName` и `appium:automationName`, а также способ выбрать device и приложение. Для Android это могут быть `appium:deviceName`/`udid`, `appium:app` или package/activity; для iOS — device, platformVersion и app/bundleId. Non-standard capabilities используют prefix `appium:` или vendor namespace.
 
-## Ссылки на теорию
+26. MobileElement
 
-- [[12 Тестирование мобильных приложений]]
+   **Ответ:** `MobileElement` использовался в старых версиях Appium Java Client, но удалён начиная с major version 8. В актуальном code обычно применяется Selenium `WebElement`, а mobile-specific commands находятся у AndroidDriver/IOSDriver или extension interfaces. Возвращать старую dependency только ради MobileElement не стоит.
+
+27. AppiumDriver (Android/iOS)
+
+   **Ответ:** AppiumDriver — базовый Java client driver для Appium sessions, а AndroidDriver и IOSDriver дают platform-specific возможности. Driver получает remote server URL и Options/capabilities, отправляет WebDriver commands и завершает session через `quit()`. Один instance нельзя безопасно делить между parallel threads.
+
+28. UiAutomator2 (Android)
+
+   **Ответ:** UiAutomator2 driver — официальный Appium driver для Android, который переводит WebDriver commands в Android automation через UiAutomator2 server. Он поддерживает native и web/hybrid contexts, device commands и Android-specific locator strategies. Driver устанавливается как Appium extension и имеет собственные version requirements и capabilities.
+
+29. iOS:
+
+   **Ответ:** Для Appium на iOS используется XCUITest driver и WebDriverAgent, который должен быть собран и подписан для target device. Simulator проще для CI, а real device нужен для hardware, push, camera и части system behavior. Signing, ports и derived data становятся отдельными рисками parallel execution.
+
+30. XCUIApplication (start vs launch)
+
+   **Ответ:** `launch()` запускает XCUIApplication с настроенными arguments/environment и обычно сбрасывает её process для test. Метода `start()` в публичном XCUIApplication API нет; `activate()` переводит установленное приложение в foreground без нового launch flow. Выбор зависит от того, проверяется cold start или возврат к существующей session.
+
+31. launchEnvironment, launchArguments
+
+   **Ответ:** Эти свойства задаются до `launch()` и передают application test configuration. Arguments удобны для flags, environment — для именованных values, но sensitive data не следует выводить в logs. App должен явно поддерживать test mode и не включать его в production случайно.
+
+32. XCUIElement
+
+   **Ответ:** XCUIElement предоставляет actions и properties элемента accessibility tree. Перед interaction я жду `exists` и нужное состояние, а после изменения UI при необходимости заново получаю element из query. Identifier-based поиск стабильнее coordinates.
+
+33. XCUIElementQuery
+
+   **Ответ:** Query фильтрует элементы по type, identifier, predicate и hierarchy и вычисляется при обращении к result. Его можно переиспользовать как описание поиска, но не следует полагаться на случайный `element(boundBy:)`, если порядок UI меняется. Уникальность лучше подтверждать в test design.
+
+34. XCTWaiter
+
+   **Ответ:** XCTWaiter управляет ожиданием expectations и позволяет анализировать результат без немедленного завершения test. Он поддерживает timeout и порядок, если это требуется scenario. Для обычного UI появления предпочтителен более прямой element wait.
+
+35. XCTestExpectations
+
+   **Ответ:** Expectations синхронизируют asynchronous code с test, например callback, notification или predicate. Каждая expectation должна fulfill-иться ожидаемое число раз до общего timeout. После ожидания test проверяет сам результат, потому что факт callback не всегда означает правильные данные.
+
+36. XCTAssert
+
+   **Ответ:** Assertions фиксируют expected behavior и останавливают или помечают test при расхождении согласно framework behavior. Я выбираю наиболее конкретный XCTAssert и добавляю context. Проверку нельзя заменять только screenshot или log.
+
+37. setUp(), tearDown() , AddTearDownBlock()
+
+   **Ответ:** Setup создаёт application и данные, teardown закрывает session и очищает state. `addTeardownBlock` регистрирует cleanup для resource, созданного внутри test или setup. Блоки не должны скрывать исходное падение новой ошибкой очистки.
+
+38. accessibility labels, identifiers
+
+   **Ответ:** Label описывает элемент пользователю VoiceOver и может зависеть от языка, identifier стабильно связывает automation с element. Одинаковый identifier не должен без необходимости повторяться на одном экране. Наличие identifier не заменяет проверку accessibility behavior.
+
+39. XCUIDevice
+
+   **Ответ:** Через XCUIDevice можно менять orientation и выполнять поддерживаемые device button actions. Это помогает проверять rotation и system interaction, но API не даёт полного контроля над реальным hardware. Возможность следует проверять для конкретных Xcode и device types.
+
+40. Interruption monitor
+
+   **Ответ:** XCTest UI interruption monitor регистрирует handler для системных alerts, например permission dialog. После регистрации test выполняет interaction, чтобы XCTest обнаружил interruption, а handler находит и нажимает нужную кнопку. Monitor удаляется после использования и не должен автоматически принимать любой alert без проверки текста.
+
+41. XCTContext.runActivity
+
+   **Ответ:** `XCTContext.runActivity` группирует действия в именованную activity внутри XCTest report. К activity можно прикладывать screenshot, text и другие XCTAttachment, что упрощает диагностику. Activity структурирует отчёт, но не заменяет assertions.
+
+42. Интеракции и нестандартные сценарии:
+
+   **Ответ:** К ним относятся system permissions, notifications, background/foreground, orientation, locale, deep links, biometrics и network changes. Возможности различаются между Appium driver, native XCTest, emulator/simulator и real device. Scenario нужно сначала проверить на поддерживаемость выбранной infrastructure.
+
+43. работа с системными алертами (permissions, push notifications) через Appium и InterruptionMonitor
+
+   **Ответ:** В Appium alert можно обработать через native context, platform locators и соответствующие mobile commands или заранее настроить permissions; automatic accept применяют осторожно. `InterruptionMonitor` относится к native XCUITest code и обрабатывает iOS interruptions по проверяемому тексту и кнопке. Push notification testing дополнительно требует signing, entitlement, server payload и часто real device.
+
+44. тестирование в background/foreground режимах (runAppInBackground)
+
+   **Ответ:** Appium clients предоставляют command для временного background, а также activate/terminate/query app state в зависимости от driver. Test фиксирует состояние до ухода, ожидает нужное событие и проверяет восстановление после foreground. Точное имя метода и parameter type зависят от версии client, поэтому wrapper должен изолировать API change.
+
+45. изменение ориентации экрана, смена языков и регионов
+
+   **Ответ:** Orientation можно менять driver command или XCUIDevice, а locale/language задавать capabilities, simulator settings или перезапуском device согласно platform. После изменения проверяются layout, resources, formats и сохранение state. Не все cloud devices разрешают runtime change, поэтому matrix иногда создаёт отдельную session на каждую configuration.
+
+46. Опыт настройки CI для мобильной автоматизации(Android/iOS):
+
+   **Ответ:** Нужен реальный шаблон: «Pipeline собирал app, запускал emulator/simulator или подключался к farm, выполнял tests и публиковал logs/video/screenshots». Для iOS agent должен быть macOS с совместимым Xcode и signing, для Android — SDK и managed AVD/device. Cleanup и retry infrastructure failures отделяются от product failures.
+
+47. параметризация запусков
+
+   **Ответ:** Pipeline передаёт platform, device, OS version, app artifact, locale, orientation, tags и remote endpoint через typed configuration. Matrix формируется по risk и usage analytics, а не как декартово произведение всех values. Session metadata должна попадать в report.
+
+48. отчёты (Allure/TestNG/JUnit + скриншоты, логи, видео)
+
+   **Ответ:** TestNG/JUnit предоставляет execution results, Allure добавляет steps и attachments, а device infrastructure — video, logcat/syslog и device logs. Все artifacts связываются с test, device, session id и build. Tokens, user data и notification contents маскируются.
+
+49. Appium Grid / Device Farm запуск
+
+   **Ответ:** Test создаёт Remote Appium session на Grid или provider endpoint с platform и vendor capabilities. Infrastructure выбирает node/device, устанавливает app и возвращает session id, по которому доступны artifacts. Нужно учитывать parallel quota, очередь, уникальные ports on-premises и provider-specific features.
+
+50. Работа c фермой(Android/iOS):
+
+   **Ответ:** Обычно app загружается через UI/API, затем выбираются devices/OS и test framework либо Appium endpoint. Run отслеживается по build/session metadata, после чего скачиваются logs, video, screenshots и results. Ограничения real devices, signing, network tunnel и data cleanup проверяются заранее.
+
+51. параметризация, отчёты, запуск на ферме
+
+   **Ответ:** Device matrix и test shards передаются из CI, credentials берутся из secret storage, app загружается один раз и получает versioned identifier. Framework создаёт sessions, обновляет их status и после run получает artifacts через API. Report агрегирует результаты, сохраняя platform-specific failures и queue time.
+
+52. Паралелльный запуск автоматизированных мобильных тестов (Android/iOS)
+
+   **Ответ:** Каждый parallel worker получает отдельный device, driver, test account и data namespace. На локальном Appium для Android разделяются `systemPort`, а для iOS — WebDriverAgent/MJPEG ports и derived data по требованиям driver; на farm действует purchased concurrency. Tests не должны зависеть от порядка, общей clipboard/session или одного backend record.
