@@ -26,6 +26,9 @@
 22. [[21 Logging Reporting and Metrics]]
 23. [[22 Docker and Test Environments]]
 24. [[23 Software Engineering Practices for AQA]]
+25. [[24 Design Patterns for AQA]]
+26. [[25 Selenium Grid]]
+27. [[26 REST API Testing with REST Assured]]
 
 ## Practice
 
@@ -33,7 +36,5 @@
 
 ## Coming Up
 
-25. Design Patterns for AQA (Factory, Builder, Strategy)
-26. SQL + JDBC
-27. REST API Testing (REST Assured)
-28. Test Data Management
+28. SQL + JDBC
+29. Test Data Management

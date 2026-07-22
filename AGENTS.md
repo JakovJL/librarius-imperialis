@@ -167,6 +167,9 @@ knowledge base/
 │       │   ├── 21 Logging Reporting and Metrics.md
 │       │   ├── 22 Docker and Test Environments.md
 │       │   ├── 23 Software Engineering Practices for AQA.md
+│       │   ├── 24 Design Patterns for AQA.md
+│       │   ├── 25 Selenium Grid.md
+│       │   ├── 26 REST API Testing with REST Assured.md
 │       │   └── Practice - QA Issue Tracker.md
 │       └── Rus/
 │           ├── AQA Java rus.md
@@ -194,6 +197,9 @@ knowledge base/
 │           ├── 21 Логирование отчёты и метрики.md
 │           ├── 22 Docker и тестовые окружения.md
 │           ├── 23 Инженерные практики для AQA.md
+│           ├── 24 Паттерны проектирования для AQA.md
+│           ├── 25 Selenium Grid.md
+│           ├── 26 REST API тестирование с REST Assured.md
 │           └── Практика - QA Issue Tracker.md
 ├── English/
 │   ├── English Learning Plan.md
